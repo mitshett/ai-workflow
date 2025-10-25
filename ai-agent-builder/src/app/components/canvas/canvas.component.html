@@ -1,0 +1,101 @@
+<!-- Main Canvas Area -->
+<main class="canvas">
+  <!-- Invisible drop zone overlay for sidebar drops only -->
+  <div class="drop-zone-overlay"
+       cdkDropList
+       id="canvas-drop-zone"
+       [cdkDropListData]="[]"
+       [cdkDropListConnectedTo]="isCanvasNodeDragging ? [] : ['sidebar-nodes']"
+       [cdkDropListDisabled]="isCanvasNodeDragging"
+       cdkDropListSortingDisabled="true"
+       (cdkDropListDropped)="onCanvasDrop($event)"
+       (cdkDropListEntered)="onDropListEntered($event)"
+       (cdkDropListExited)="onDropListExited($event)">
+  </div>
+
+  <!-- Canvas content - separate from drop zone -->
+  <div class="canvas-content" #canvasContainer (click)="onDeselectAll($event)">
+    <!-- Empty state when no nodes -->
+    <div class="empty-state" *ngIf="canvasNodes.length === 0">
+      <pol-icon iconName="empty-state-illustration-info" size="xlarge"></pol-icon>
+      <h3>Start building your AI agent workflow</h3>
+      <p>Drag and drop nodes from the sidebar to begin</p>
+    </div>
+
+    <!-- SVG Layer for Connections -->
+    <svg class="connections-layer"
+         [attr.width]="canvasWidth"
+         [attr.height]="canvasHeight">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#9ca3af" />
+        </marker>
+        <marker id="arrowhead-selected" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
+        </marker>
+      </defs>
+      <!-- Connection lines -->
+      <path *ngFor="let connection of connections"
+            [attr.d]="getConnectionPath(connection)"
+            class="connection-line"
+            [class.selected]="selectedConnectionId === connection.id"
+            stroke="#9ca3af"
+            stroke-width="1.5"
+            fill="none"
+            [attr.marker-end]="selectedConnectionId === connection.id ? 'url(#arrowhead-selected)' : 'url(#arrowhead)'"
+            (click)="selectConnection(connection.id, $event)"
+            style="cursor: pointer;">
+      </path>
+      <!-- Temporary connection line while dragging -->
+      <path *ngIf="tempConnection"
+            [attr.d]="tempConnection.path"
+            class="temp-connection-line"
+            stroke="#60a5fa"
+            stroke-width="1.5"
+            fill="none"
+            stroke-dasharray="4,4">
+      </path>
+    </svg>
+
+    <!-- Canvas nodes - completely separate from drop zone -->
+    <div *ngFor="let node of canvasNodes"
+         class="canvas-node"
+         [class.selected]="selectedNodeId === node.id"
+         [style.left.px]="node.position.x"
+         [style.top.px]="node.position.y"
+         [attr.data-node-type]="node.type"
+         [attr.data-node-id]="node.id"
+         cdkDrag
+         [cdkDragData]="node"
+         [cdkDragBoundary]="canvasContainer"
+         [cdkDragConstrainPosition]="constrainPosition"
+         (cdkDragEnded)="onNodeDragEnd($event, node)"
+         (cdkDragStarted)="onNodeDragStart($event, node)"
+         (click)="selectNode(node.id, $event)">
+      <!-- Connection handles - OUTSIDE drag handle to prevent event interference -->
+      <!-- Input Handle (left side) -->
+      <div *ngIf="node.type !== 'start'"
+           class="connection-handle input-handle"
+           [attr.data-node-id]="node.id"
+           [attr.data-handle-type]="'input'"
+           (mousedown)="startConnection($event, node.id, 'input')">
+      </div>
+
+      <!-- Output Handle (right side) -->
+      <div *ngIf="node.type !== 'end'"
+           class="connection-handle output-handle"
+           [attr.data-node-id]="node.id"
+           [attr.data-handle-type]="'output'"
+           (mousedown)="startConnection($event, node.id, 'output')">
+      </div>
+
+      <div class="node-content" [ngClass]="node.type + '-node'"
+           cdkDragHandle>
+        <div class="node-main-content">
+          <pol-icon [iconName]="getIconName(node.icon)" size="medium"></pol-icon>
+          <span class="node-label">{{ node.label }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

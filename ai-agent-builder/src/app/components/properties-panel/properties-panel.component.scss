@@ -1,0 +1,381 @@
+// ==================== PROPERTIES PANEL COMPONENT STYLES ====================
+
+
+.properties-panel-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--control-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--control-bg-default);
+
+  .node-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .node-icon {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: var(--control-bg-subtle);
+      border: 1px solid var(--control-border-default);
+    }
+
+    .node-details {
+      h3 {
+        margin: 0 0 0.125rem 0;
+        font-size: var(--base-font-size-h5);
+        font-weight: var(--base-font-weight-medium);
+        color: var(--base-text-default);
+      }
+
+      .node-type {
+        font-size: var(--base-font-size-p4);
+        color: var(--base-text-medium-default);
+        text-transform: uppercase;
+        font-weight: var(--base-font-weight-medium);
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  button {
+    background: none;
+    border: none;
+    color: var(--base-text-medium-default);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+    z-index: 10;
+    position: relative;
+
+    &:hover {
+      color: var(--base-text-default);
+      background: var(--control-bg-hover);
+    }
+  }
+}
+
+.properties-panel-body {
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+// Component-specific property section styles
+.property-section {
+    margin-bottom: 1.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-header {
+      margin-bottom: 1rem;
+
+      h4 {
+        margin: 0;
+        font-size: var(--base-font-size-h6);
+        font-weight: var(--base-font-weight-medium);
+        color: var(--base-text-default);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+
+    .section-content {
+      // Section-level buttons (Add Variable, Add Argument, etc.)
+      > button[pol-button] {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      
+      .form-group {
+        margin-bottom: 1rem;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          margin-left: 0.5rem;
+          font-size: var(--base-font-size-p3);
+          font-weight: var(--base-font-weight-medium);
+          color: var(--base-text-default);
+
+          &.form-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            pol-icon {
+              color: var(--base-text-medium-default);
+            }
+          }
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          margin-left: 0.5rem;
+          border: 1px solid var(--control-border-default);
+          border-radius: 6px;
+          background: var(--control-bg-default);
+          color: var(--base-text-default);
+          font-size: var(--base-font-size-p3);
+
+          &:focus {
+            outline: none;
+            border-color: var(--control-border-emphasis);
+            box-shadow: 0 0 0 2px var(--control-border-emphasis-alpha);
+          }
+
+          &::placeholder {
+            color: var(--base-text-subtle);
+          }
+        }
+
+        textarea.form-control {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        // Add breathing space for custom components
+        pol-input-text,
+        pol-select {
+          margin-left: 0.5rem;
+          display: block;
+        }
+
+        // Form field buttons (inside form controls)
+        .form-group button[pol-button],
+        .variable-item button[pol-button] {
+          margin-left: 0.5rem;
+          margin-top: 0.5rem;
+        }
+
+        .alias-preview,
+        .alias-error {
+          margin-left: 0.5rem;
+        }
+
+        .field-hint {
+          margin-top: 0.5rem;
+          margin-left: 0.5rem;
+          font-size: var(--base-font-size-p4);
+          color: var(--base-text-medium-default);
+
+          code {
+            background: var(--control-bg-subtle);
+            padding: 0.125rem 0.25rem;
+            border-radius: 3px;
+            font-family: var(--base-font-family-mono);
+            font-size: var(--base-font-size-p5);
+          }
+        }
+
+        // Error states
+        .alias-preview {
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          background: var(--control-bg-subtle);
+          border: 1px solid var(--control-border-subtle);
+          border-radius: 6px;
+
+          small {
+            font-size: var(--base-font-size-p4);
+            color: var(--base-text-medium-default);
+
+            code {
+              background: var(--control-bg-hover);
+              padding: 0.125rem 0.375rem;
+              border-radius: 4px;
+              font-family: var(--base-font-family-mono);
+              font-size: var(--base-font-size-p5);
+            }
+          }
+        }
+
+        .alias-error {
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 6px;
+
+          .error-text {
+            font-size: var(--base-font-size-p4);
+            color: #ef4444;
+          }
+        }
+
+        &.error {
+          pol-input-text {
+            ::ng-deep input {
+              border-color: #ef4444;
+              box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+            }
+          }
+        }
+      }
+
+      // Variables list - now part of the main scroll area
+      .variables-list {
+        margin-bottom: 1.5rem; // Add space after variables list
+        
+        .variable-item {
+          padding: 1rem;
+          border: 1px solid var(--control-border-default);
+          border-radius: 8px;
+          margin-bottom: 0.75rem;
+          background: var(--control-bg-subtle);
+          box-sizing: border-box; // Ensure padding is included in width
+          overflow: hidden; // Prevent content overflow
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          .form-group {
+            margin-bottom: 0.75rem;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            // Fix form controls sizing within variable items
+            pol-input-text,
+            pol-select,
+            input,
+            select,
+            textarea {
+              width: 100%;
+              max-width: 100%;
+              box-sizing: border-box;
+              margin-left: 0 !important; // Reset any left margin from parent rules
+            }
+
+            label {
+              margin-left: 0 !important; // Reset label margin within variable items
+              margin-bottom: 0.5rem;
+              font-size: var(--base-font-size-p3);
+              font-weight: var(--base-font-weight-medium);
+              color: var(--base-text-default);
+            }
+          }
+
+          button {
+            margin-top: 0.5rem;
+            margin-left: 0 !important; // Reset button margin within variable items
+          }
+        }
+      }
+
+      // Handled by general .section-content > button[pol-button] rule above
+
+      // Add extra spacing for entire State Variables section
+      &:last-child {
+        margin-bottom: 2rem; // Extra space at bottom of properties panel
+      }
+
+      // Arguments list
+      .arguments-list {
+        .argument-item {
+          display: grid;
+          grid-template-columns: 1fr 1fr auto;
+          gap: 0.75rem;
+          align-items: end;
+          padding: 1rem;
+          border: 1px solid var(--control-border-default);
+          border-radius: 8px;
+          margin-bottom: 0.75rem;
+          background: var(--control-bg-subtle);
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+          }
+        }
+      }
+
+      // JSON schema controls
+      .json-schema-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-left: 0.5rem;
+
+        .schema-status {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          .schema-indicator {
+            color: var(--semantic-text-success-default);
+            font-size: var(--base-font-size-p3);
+            font-weight: var(--base-font-weight-medium);
+          }
+        }
+      }
+
+      // Placeholder state
+      .node-config {
+        padding: 2rem;
+        background: var(--control-bg-subtle);
+        border: 2px dashed var(--control-border-subtle);
+        border-radius: 8px;
+        text-align: center;
+
+        .config-note {
+          margin: 0;
+          font-size: var(--base-font-size-p2);
+          color: var(--base-text-medium-default);
+        }
+      }
+    }
+
+    // Special styling for alias section
+    &.alias-section {
+      .section-header h4 {
+        color: var(--semantic-text-info-default);
+      }
+    }
+  }
+
+// Responsive design
+@media (max-width: 768px) {
+  .properties-panel-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .properties-panel-body {
+    padding: 1rem; // Maintain consistent padding on mobile
+
+    .property-section {
+      margin-bottom: 1.25rem;
+
+      .section-content {
+        .arguments-list .argument-item {
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+      }
+    }
+  }
+}

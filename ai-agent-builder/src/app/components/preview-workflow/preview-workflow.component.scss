@@ -1,0 +1,194 @@
+// ===============================
+// PREVIEW WORKFLOW COMPONENT STYLES
+// ===============================
+
+:host {
+  display: block;
+  position: fixed;
+  top: 73px; // Fine-tuned alignment with canvas-content top edge
+  right: 3px; // Move very close to the right edge
+  width: 400px;
+  height: calc(100vh - 73px - 24px); // Account for top position and bottom margin
+  z-index: 300;
+}
+
+.preview-chat-sidebar {
+  width: 100%;
+  height: 100%;
+  background: var(--control-bg-default);
+  border: 1px solid var(--control-border-default);
+  border-radius: 8px; // Add rounded corners for consistency
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); // Better shadow for floating panel
+  overflow: hidden; // Ensure content respects border radius
+
+  .chat-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--control-border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--control-bg-subtle);
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--base-text-default);
+    }
+
+    button {
+      background: transparent;
+      border: 1px solid var(--control-border-default);
+      color: var(--base-text-medium-default);
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: var(--control-bg-subtle);
+        border-color: var(--control-border-emphasis);
+      }
+    }
+  }
+
+  .chat-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      
+      // Custom styling for typing indicator within Polarity AI components
+      .typing-indicator {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 8px 0;
+
+        span {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: var(--base-text-medium-default);
+          animation: typing 1.4s infinite ease-in-out;
+
+          &:nth-child(1) { animation-delay: 0s; }
+          &:nth-child(2) { animation-delay: 0.2s; }
+          &:nth-child(3) { animation-delay: 0.4s; }
+        }
+      }
+
+      // Custom scrollbar styling
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+
+    .chat-input {
+      border-top: 1px solid var(--control-border-default);
+      padding: 16px;
+      background: var(--control-bg-subtle);
+
+      .input-group {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+
+        .form-control {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid var(--control-border-default);
+          border-radius: 6px;
+          background: var(--control-bg-default);
+          color: var(--base-text-default);
+          font-size: 14px;
+          resize: none;
+          min-height: 36px;
+          max-height: 120px;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: var(--control-border-emphasis);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+
+          &::placeholder {
+            color: var(--base-text-medium-default);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+        }
+
+        button {
+          flex-shrink: 0;
+        }
+      }
+    }
+  }
+}
+
+// ===============================
+// ANIMATIONS
+// ===============================
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+// ===============================
+// RESPONSIVE ADJUSTMENTS
+// ===============================
+
+@media (max-width: 768px) {
+  :host {
+    width: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  :host {
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+  
+  .preview-chat-sidebar {
+    border-radius: 8px 8px 0 0;
+  }
+}

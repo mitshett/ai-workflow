@@ -1,0 +1,303 @@
+// ==================== CANVAS COMPONENT STYLES ====================
+
+// Host component styling
+:host {
+  display: flex;
+  height: 100%;
+  width: var(--canvas-computed-width, 100%);
+  transition: width 0.3s ease;
+}
+
+// Main Canvas
+.canvas {
+  width: 100%;
+  background: var(--base-bg-default);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+
+  // Invisible drop zone overlay for sidebar drops
+  .drop-zone-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none; // Only enable during drag operations
+    min-height: 100%;
+    min-width: 100%;
+    background: transparent;
+
+    &.cdk-drop-list-receiving {
+      pointer-events: auto; // Enable during drag operations
+      background-color: rgba(59, 130, 246, 0.05);
+      &::after {
+        content: '';
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        border: 2px dashed var(--control-border-emphasis);
+        border-radius: var(--base-border-radius-medium);
+        pointer-events: none;
+      }
+    }
+  }
+
+  .canvas-content {
+    flex: 1;
+    position: relative;
+    background:
+      radial-gradient(circle, rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: 12px 12px;
+    overflow: auto;
+    border-radius: 12px;
+    margin: 16px;
+    border: 1px solid var(--control-border-weak-default);
+    height: calc(100% - 32px);
+
+    // Empty state styling
+    .empty-state {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--base-spacing-medium);
+      text-align: center;
+      max-width: 400px;
+      pointer-events: none;
+
+      h3 {
+        margin: 0;
+        font-size: var(--base-font-size-h3);
+        font-weight: var(--base-font-weight-semibold);
+        color: var(--base-text-default);
+      }
+
+      p {
+        margin: 0;
+        font-size: var(--base-font-size-p2);
+        color: var(--base-text-medium-default);
+      }
+    }
+
+    // SVG Connections Layer
+    .connections-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none; // SVG background doesn't block clicks
+      z-index: 2; // Above drop zone overlay
+
+      .connection-line {
+        pointer-events: auto; // But connection lines are clickable
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+        transition: all 0.2s ease;
+        cursor: pointer;
+
+        &:hover {
+          stroke-width: 2;
+          stroke: #60a5fa !important;
+        }
+
+        // Selection styling for connection lines
+        &.selected {
+          stroke: #3b82f6 !important;
+          stroke-width: 3 !important;
+          animation: pulse-connection 2s ease-in-out infinite;
+        }
+      }
+
+      .temp-connection-line {
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        animation: dash 1s linear infinite;
+      }
+    }
+
+    // Canvas nodes styling
+    .canvas-node {
+      position: absolute;
+      cursor: grab !important; // Force grab cursor
+      user-select: none;
+      z-index: 10; // Above drop zone overlay
+      transition: all 0.2s ease;
+
+      // Selection styling
+      &.selected {
+        .node-content {
+          border: 2px solid #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+          transform: scale(1.02);
+        }
+      }
+
+      &.cdk-drag-dragging {
+        z-index: 20; // Even higher when dragging
+        cursor: grabbing !important;
+
+        .node-content {
+          transform: rotate(1deg) scale(1.02);
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+          cursor: grabbing !important;
+        }
+
+        // Hide connection handles while dragging
+        .connection-handle {
+          opacity: 0 !important;
+        }
+      }
+
+      &.cdk-drag-animating {
+        transition: transform 300ms cubic-bezier(0, 0, 0.2, 1) !important;
+      }
+
+      // Ensure dragging doesn't interfere with positioning
+      &.cdk-drag {
+        touch-action: none;
+      }
+
+      // Fix cursor sync by ensuring proper transform origin
+      &.cdk-drag-preview {
+        transform-origin: center center;
+      }
+
+      .node-content {
+        display: flex;
+        align-items: center;
+        gap: var(--base-spacing-small);
+        padding: 12px 16px;
+        background: var(--control-bg-default);
+        border: 1px solid var(--control-border-default);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        min-width: 120px;
+        backdrop-filter: blur(8px);
+        position: relative;
+
+        .node-main-content {
+          display: flex;
+          align-items: center;
+          gap: var(--base-spacing-small);
+          flex: 1;
+        }
+
+        &:hover {
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
+          border-color: var(--control-border-emphasis);
+
+          // Show connection handles on hover
+          + .connection-handle {
+            opacity: 1;
+            scale: 1;
+          }
+        }
+
+        .node-label {
+          font-size: var(--base-font-size-p2);
+          font-weight: var(--base-font-weight-medium);
+          color: var(--base-text-default);
+          white-space: nowrap;
+        }
+      }
+
+      // Connection handles - now at canvas-node level
+      .connection-handle {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #3b82f6;
+        border: 2px solid #ffffff;
+        cursor: crosshair;
+        opacity: 0.9; // More visible
+        scale: 1;
+        transition: all 0.2s ease;
+        z-index: 25; // Higher than node content
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        pointer-events: auto;
+
+        &:hover {
+          opacity: 1;
+          scale: 1.3;
+          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+          background: #2563eb;
+        }
+
+        &.input-handle {
+          left: -7px; // Adjusted for new size
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        &.output-handle {
+          right: -7px; // Adjusted for new size
+          top: 50%;
+          transform: translateY(-50%);
+        }
+      }
+
+      // Node type specific styling
+      &[data-node-type="start"] .node-content {
+        border-left: 4px solid #22c55e;
+      }
+
+      &[data-node-type="agent"] .node-content {
+        border-left: 4px solid #3b82f6;
+      }
+
+      &[data-node-type="end"] .node-content {
+        border-left: 4px solid #ef4444;
+      }
+
+      &[data-node-type="mcp"] .node-content {
+        border-left: 4px solid #8b5cf6;
+      }
+
+      &[data-node-type="if-else"],
+      &[data-node-type="sequential"],
+      &[data-node-type="parallel"] {
+        .node-content {
+          border-left: 4px solid #06b6d4;
+        }
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes pulse-connection {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+// Global dragging state
+:host {
+  &.dragging-node {
+    .canvas {
+      .canvas-content {
+        .canvas-node {
+          .connection-handle {
+            opacity: 0.3;
+            pointer-events: none;
+          }
+        }
+      }
+    }
+  }
+}

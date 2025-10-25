@@ -1,0 +1,7 @@
+<button pol-button variant="tertiary" size="small" class="node-item tool-node"
+        cdkDrag [cdkDragData]="getDragData()"
+        (cdkDragStarted)="onDragStart($event)"
+        (cdkDragEnded)="onDragEnd($event)">
+  <pol-icon [iconName]="iconName" size="medium"></pol-icon>
+  {{ label }}
+</button>

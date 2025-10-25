@@ -1,0 +1,61 @@
+<!-- Preview Chat Sidebar -->
+<aside class="preview-chat-sidebar" *ngIf="isVisible">
+  <div class="chat-header">
+    <h3>Workflow Preview</h3>
+    <button (click)="closePreviewWorkflow()" aria-label="Close preview chat">
+      <pol-icon iconName="x" size="small"></pol-icon>
+    </button>
+  </div>
+  
+  <div class="chat-content">
+    <!-- Messages Container -->
+    <div class="messages-container">
+      <!-- Chat Messages using proper Polarity AI Components -->
+      <pol-ai-chat-message *ngFor="let message of chatMessages" 
+                           [variant]="message.type === 'user' ? 'user' : 'assistant'">
+        <pol-ai-chat-message-heading 
+          [sender]="message.type === 'assistant' ? 'AI Assistant' : 'You'"
+          [timestamp]="(message.timestamp | date:'short') || ''">
+          <div avatar>
+            <span *ngIf="message.type === 'assistant'">🤖</span>
+            <span *ngIf="message.type === 'user'">👤</span>
+          </div>
+        </pol-ai-chat-message-heading>
+        
+        <p>{{ message.content }}</p>
+      </pol-ai-chat-message>
+      
+      <!-- Typing indicator using Polarity AI Components -->
+      <pol-ai-chat-message *ngIf="isExecutingWorkflow" variant="assistant">
+        <pol-ai-chat-message-heading sender="AI Assistant">
+          <div avatar>🤖</div>
+        </pol-ai-chat-message-heading>
+        
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </pol-ai-chat-message>
+    </div>
+    
+    <!-- Chat Input -->
+    <div class="chat-input">
+      <div class="input-group">
+        <input type="text" 
+               [(ngModel)]="chatInput"
+               (keydown)="onChatKeyDown($event)"
+               [disabled]="isExecutingWorkflow"
+               placeholder="Type your message..."
+               class="form-control">
+        <button pol-button 
+                variant="primary" 
+                size="small"
+                (click)="sendChatMessage()"
+                [disabled]="!chatInput.trim() || isExecutingWorkflow">
+          Send
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>

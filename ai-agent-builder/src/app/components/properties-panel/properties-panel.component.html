@@ -1,0 +1,344 @@
+<!-- Properties Panel Header -->
+<div class="properties-panel-header">
+  <div class="node-info">
+    <div class="node-icon">
+      <pol-icon [iconName]="getIconName(getSelectedNode()?.icon || 'circle')" size="medium"></pol-icon>
+    </div>
+    <div class="node-details">
+      <h3>{{ getSelectedNode()?.label || 'Unknown' }}</h3>
+      <span class="node-type">{{ getSelectedNode()?.type || 'unknown' }}</span>
+    </div>
+  </div>
+  <button (click)="onClosePanel()" aria-label="Close properties panel">
+    <pol-icon iconName="x" size="small"></pol-icon>
+  </button>
+</div>
+
+<div class="properties-panel-body" *ngIf="getSelectedNode()?.type === 'agent'">
+  <!-- Alias Section - Common for all node types -->
+  <div class="property-section alias-section">
+    <div class="section-header">
+      <h4>Variable Access</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="node-alias" class="form-label">
+          <pol-icon iconName="tag" size="small"></pol-icon>
+          Alias *
+        </label>
+        <pol-input-text 
+          id="node-alias"
+          [(ngModel)]="getSelectedNode()!.alias"
+          (ngModelChange)="onAliasChange($event)"
+          placeholder="e.g., weather, token, summary"
+          [class.error]="hasAliasError()">
+        </pol-input-text>
+        <div class="alias-preview" *ngIf="getSelectedNode()!.alias && !hasAliasError()">
+          <small>Variables: <code>workflow.{{getSelectedNode()!.alias}}.*</code></small>
+        </div>
+        <div class="alias-error" *ngIf="hasAliasError()">
+          <small class="error-text">{{getAliasErrorMessage()}}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Agent Configuration Section -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Agent Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="agent-name">Agent Name</label>
+        <pol-input-text 
+               id="agent-name"
+               [(ngModel)]="getSelectedNode()!.data!.agentConfig!.name" 
+               (ngModelChange)="onAgentNameChange($event)"
+               placeholder="Enter agent name">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="agent-model">Model</label>
+        <pol-select id="agent-model" 
+                [(ngModel)]="getSelectedNode()!.data!.agentConfig!.model">
+          <option value="gpt-35-turbo">GPT-3.5 Turbo</option>
+          <option value="gpt-4">GPT-4</option>
+          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+        </pol-select>
+      </div>
+
+      <div class="form-group">
+        <label for="agent-instructions">Instructions</label>
+        <textarea id="agent-instructions"
+                  [(ngModel)]="getSelectedNode()!.data!.agentConfig!.instructions"
+                  placeholder="Enter agent instructions..."
+                  rows="4"
+                  class="form-control">
+        </textarea>
+        <div class="field-hint">
+          Use <code>$&#123;user_request&#125;</code> to reference user input
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="output-format">Output Format</label>
+        <pol-select id="output-format"
+                [(ngModel)]="getSelectedNode()!.data!.agentConfig!.outputFormat"
+                (change)="onOutputFormatChange()">
+          <option value="text">Plain Text</option>
+          <option value="json">Structured JSON</option>
+        </pol-select>
+      </div>
+
+      <!-- JSON Schema Configuration -->
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.agentConfig!.outputFormat === 'json'">
+        <label>JSON Schema</label>
+        <div class="json-schema-controls">
+          <button pol-button variant="secondary" size="small" 
+                  *ngIf="!getSelectedNode()!.data!.agentConfig!.jsonSchema" 
+                  (click)="setupJsonSchema()">
+            <pol-icon iconName="plus" size="small"></pol-icon>
+            Setup Schema
+          </button>
+          <div *ngIf="getSelectedNode()!.data!.agentConfig!.jsonSchema" class="schema-status">
+            <span class="schema-indicator">✓ Schema Configured</span>
+            <button pol-button variant="tertiary" size="small" (click)="editJsonSchema()">
+              <pol-icon iconName="pencil" size="small"></pol-icon>
+              Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State Variables Section -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>State Variables</h4>
+    </div>
+    <div class="section-content">
+      <div class="variables-list">
+        <div *ngFor="let variable of getSelectedNode()!.data!.agentConfig!.stateVariables!; let i = index" 
+             class="variable-item">
+          <div class="form-group">
+            <label>Variable Name</label>
+            <pol-input-text 
+                   [(ngModel)]="variable.name"
+                   [disabled]="variable.name === 'user_request'"
+                   placeholder="Variable name">
+            </pol-input-text>
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <pol-select [(ngModel)]="variable.type">
+              <option value="string">String</option>
+              <option value="number">Number</option>
+              <option value="boolean">Boolean</option>
+              <option value="object">Object</option>
+              <option value="array">Array</option>
+            </pol-select>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <pol-input-text 
+                   [(ngModel)]="variable.description"
+                   placeholder="Variable description">
+            </pol-input-text>
+          </div>
+          <button *ngIf="variable.name !== 'user_request'"
+                  pol-button 
+                  variant="secondary" 
+                  size="small"
+                  (click)="removeAgentStateVariable(i)">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <button pol-button variant="secondary" size="small" (click)="addAgentStateVariable()">
+        Add Variable
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MCP Configuration Panel -->
+<div class="properties-panel-body" *ngIf="getSelectedNode()?.type === 'mcp'">
+  <!-- MCP Basic Configuration -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>MCP Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="mcp-name">MCP Name</label>
+        <pol-input-text 
+               id="mcp-name"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.name" 
+               (ngModelChange)="onMCPNameChange($event)"
+               placeholder="Enter MCP node name">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="mcp-description">Description</label>
+        <pol-input-text 
+               id="mcp-description"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.description" 
+               placeholder="Enter description">
+        </pol-input-text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Configuration -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Server Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="server-type">Server Type</label>
+        <pol-select id="server-type" 
+                [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.type"
+                (change)="onMCPServerTypeChange()">
+          <option value="http">HTTP</option>
+          <option value="stdio">Stdio</option>
+        </pol-select>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'http'">
+        <label for="server-url">Server URL</label>
+        <pol-input-text 
+               id="server-url"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.url" 
+               placeholder="http://localhost:8080">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'stdio'">
+        <label for="server-command">Command</label>
+        <pol-input-text 
+               id="server-command"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.command" 
+               placeholder="npx @modelcontextprotocol/server-example">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'stdio'">
+        <label for="server-args">Arguments</label>
+        <textarea id="server-args"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.args"
+                  placeholder="--port 8080"
+                  rows="3"
+                  class="form-control">
+        </textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="server-timeout">Server Timeout (seconds)</label>
+        <pol-input-text 
+               id="server-timeout"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.timeout" 
+               placeholder="30">
+        </pol-input-text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Configuration -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Tool Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="tool-name">Tool Name</label>
+        <pol-input-text 
+               id="tool-name"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.toolName" 
+               placeholder="get_oauth_token">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="tool-timeout">Tool Timeout (seconds)</label>
+        <pol-input-text 
+               id="tool-timeout"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.timeout" 
+               placeholder="60">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="retry-attempts">Retry Attempts</label>
+        <pol-input-text 
+               id="retry-attempts"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.retryAttempts" 
+               placeholder="3">
+        </pol-input-text>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Arguments -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Tool Arguments</h4>
+    </div>
+    <div class="section-content">
+      <div class="arguments-list">
+        <div *ngFor="let arg of getMCPToolArgumentsArray()" class="argument-item">
+          <div class="form-group">
+            <label>Argument Name</label>
+            <pol-input-text 
+                   [value]="arg.key"
+                   (blur)="onMCPArgumentKeyChange($event, arg.key)"
+                   placeholder="Argument name">
+            </pol-input-text>
+          </div>
+          <div class="form-group">
+            <label>Value</label>
+            <pol-input-text 
+                   [value]="arg.value"
+                   (input)="onMCPArgumentValueChange($event, arg.key)"
+                   placeholder="Argument value or template variable">
+            </pol-input-text>
+          </div>
+          <button pol-button variant="secondary" size="small" 
+                  (click)="removeMCPToolArgument(arg.key)">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <button pol-button variant="secondary" size="small" (click)="addMCPToolArgument()">
+        Add Argument
+      </button>
+
+      <button pol-button variant="secondary" size="small" (click)="testMCPConnection()">
+        Test Connection
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- No Selection / Other Node Types -->
+<div class="properties-panel-body" *ngIf="!getSelectedNode() || (getSelectedNode()?.type !== 'agent' && getSelectedNode()?.type !== 'mcp')">
+  <div class="node-config">
+    <p class="config-note" *ngIf="!getSelectedNode()">
+      Select a node to configure its properties
+    </p>
+    <p class="config-note" *ngIf="getSelectedNode()?.type === 'start'">
+      Start nodes initialize the workflow and don't require additional configuration
+    </p>
+    <p class="config-note" *ngIf="getSelectedNode()?.type === 'end'">
+      End nodes terminate the workflow and return results
+    </p>
+    <p class="config-note" *ngIf="getSelectedNode()?.type && !['agent', 'mcp', 'start', 'end'].includes(getSelectedNode()!.type)">
+      Configuration for {{ getSelectedNode()?.type }} nodes coming soon
+    </p>
+  </div>
+</div>

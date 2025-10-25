@@ -1,0 +1,212 @@
+<!-- AI Agent Builder - Polarity Components Only -->
+<header pol-header name="AI Agent Builder">
+  <!-- Header utility buttons projected to correct slot -->
+  <button pol-header-utility icon="gear" ariaLabel="Settings"></button>
+</header>
+
+<!-- Main Application Layout -->
+<div class="app-layout">
+  <!-- Left Sidebar -->
+  <app-sidebar 
+    [canvasNodes]="canvasNodes"
+    (previewChatRequested)="openPreviewWorkflow()">
+  </app-sidebar>
+
+  <!-- Main Canvas Area -->
+  <app-canvas
+    [canvasNodes]="canvasNodes"
+    [connections]="connections"
+    [selectedNodeId]="selectedNodeId"
+    [selectedConnectionId]="selectedConnectionId"
+    [isCanvasNodeDragging]="isCanvasNodeDragging"
+    [isDragging]="isDragging"
+    [canvasWidth]="canvasWidth"
+    [canvasHeight]="canvasHeight"
+    [isConnecting]="isConnecting"
+    [connectingFrom]="connectingFrom"
+    [tempConnection]="tempConnection"
+    (canvasDrop)="onCanvasDrop($event)"
+    (nodeSelect)="selectNode($event.nodeId, $event.event)"
+    (connectionSelect)="selectConnection($event.connectionId, $event.event)"
+    (deselectAll)="deselectAll()"
+    (nodeDragStart)="onNodeDragStart($event.event, $event.node)"
+    (nodeDragEnd)="onNodeDragEnd($event.event, $event.node)"
+    (connectionStart)="startConnection($event.event, $event.nodeId, $event.handleType)"
+    (connectionCreated)="onConnectionCreated($event)"
+    (connectionStateChange)="onConnectionStateChange($event)">
+  </app-canvas>
+
+  <!-- Properties Panel Component - Back inside layout -->
+  <aside class="properties-panel" *ngIf="selectedNodeId">
+    <app-properties-panel
+      [selectedNodeId]="selectedNodeId"
+      [canvasNodes]="canvasNodes"
+      (closePanel)="closePropertiesPanel()"
+      (nodeUpdate)="onNodeUpdated($event)">
+    </app-properties-panel>
+  </aside>
+
+</div>
+
+<!-- Preview Workflow Component -->
+<app-preview-workflow *ngIf="showPreviewWorkflowVisual"
+  [canvasNodes]="canvasNodes"
+  [connections]="connections"
+  [isVisible]="showPreviewWorkflowVisual"
+  (closePreview)="closePreviewWorkflow()">
+</app-preview-workflow>
+
+<!-- JSON Schema Modal - Polarity Design -->
+<div class="json-schema-modal-overlay" *ngIf="showJsonSchemaModal" (click)="closeJsonSchemaModal()">
+  <div class="json-schema-modal" (click)="$event.stopPropagation()">
+    
+    <!-- Modal Header -->
+    <div class="schema-modal-header">
+      <div class="modal-title-section">
+        <h3>Structured output (JSON)</h3>
+        <div class="mode-tabs">
+          <button class="tab-button" 
+                  [class.active]="schemaMode === 'simple'"
+                  (click)="schemaMode = 'simple'">
+            Simple
+          </button>
+          <button class="tab-button" 
+                  [class.active]="schemaMode === 'advanced'"
+                  (click)="schemaMode = 'advanced'">
+            Advanced
+          </button>
+        </div>
+      </div>
+      <button class="close-button" (click)="closeJsonSchemaModal()" aria-label="Close modal">
+        <pol-icon iconName="x" size="small"></pol-icon>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="schema-modal-body">
+    <p class="schema-description">
+      The model will generate a JSON object that matches this schema.
+    </p>
+
+    <!-- Schema Name -->
+    <div class="schema-name-section">
+      <label class="schema-label">Name</label>
+      <pol-input-text [(value)]="currentJsonSchema.name"
+                      placeholder="response_schema"
+                      size="medium">
+      </pol-input-text>
+    </div>
+
+    <!-- Properties Section -->
+    <div class="properties-section">
+      <label class="schema-label">Properties</label>
+      
+      <!-- Scrollable Properties Container -->
+      <div class="properties-container">
+        <!-- Properties Table Header -->
+        <div class="properties-header" *ngIf="currentJsonSchema.properties.length > 0">
+          <span class="prop-col-name">Name</span>
+          <span class="prop-col-type">Type</span>
+          <span class="prop-col-description">Description</span>
+          <span class="prop-col-actions"></span>
+        </div>
+
+        <!-- Property Rows -->
+        <div class="property-container" *ngFor="let property of currentJsonSchema.properties; let i = index">
+          <div class="property-row">
+            <div class="prop-col-name">
+              <div class="property-icon">
+                <pol-icon iconName="hash" size="small"></pol-icon>
+              </div>
+              <pol-input-text [(value)]="property.name"
+                              placeholder="property_name"
+                              size="small">
+              </pol-input-text>
+            </div>
+            
+            <div class="prop-col-type">
+              <select [(ngModel)]="property.type" 
+                      (change)="onPropertyTypeChange(property)"
+                      class="type-select">
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="array">Array</option>
+                <option value="object">Object</option>
+                <option value="enum">Enum</option>
+              </select>
+            </div>
+            
+            <div class="prop-col-description">
+              <!-- Regular input for non-enum types -->
+              <pol-input-text *ngIf="property.type !== 'enum'"
+                              [value]="property.description || ''"
+                              (valueChange)="property.description = $event"
+                              placeholder="Description of the property"
+                              size="small">
+              </pol-input-text>
+              
+              <!-- Enum tags input for enum type -->
+              <div *ngIf="property.type === 'enum'" class="enum-tags-input">
+                <div class="enum-tags-display">
+                  <span *ngFor="let value of property.enumValues; let j = index"
+                        class="enum-tag-inline">
+                    {{ value }}
+                    <button class="enum-remove-inline" (click)="removeEnumValue(i, j)">
+                      ×
+                    </button>
+                  </span>
+                  <input type="text" 
+                         [(ngModel)]="newEnumValue" 
+                         (keydown)="onEnumInputKeydown($event, i)"
+                         placeholder="Add enum value..."
+                         class="enum-inline-input">
+                </div>
+              </div>
+            </div>
+            
+            <div class="prop-col-actions">
+              <button pol-button 
+                      variant="tertiary" 
+                      size="small"
+                      (click)="removeSchemaProperty(i)"
+                      aria-label="Remove property">
+                <pol-icon iconName="trash" size="small"></pol-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Property Button -->
+      <button class="add-property-btn" (click)="addSchemaProperty()">
+        <pol-icon iconName="plus" size="small"></pol-icon>
+        Add
+      </button>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="schema-modal-footer">
+      <div class="footer-left">
+        <button pol-button 
+                variant="tertiary" 
+                (click)="generateSchemaFromAI()">
+          <pol-icon iconName="play" size="small"></pol-icon>
+          Generate
+        </button>
+      </div>
+      <div class="footer-right">
+        <button pol-button 
+                variant="secondary" 
+                (click)="closeJsonSchemaModal()">
+          Cancel
+        </button>
+        <button pol-button 
+                variant="primary" 
+                (click)="applyJsonSchema()">
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
