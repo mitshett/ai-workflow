@@ -7,6 +7,7 @@ import { ButtonComponent } from '@polarity/components/button';
 import { IconComponent } from '@polarity/components/icon';
 import { InputTextComponent } from '@polarity/components/input-text';
 import { SelectComponent } from '@polarity/components/select';
+import { TextAreaComponent } from '@polarity/components/textarea';
 
 // Models
 import { WorkflowNode, AgentConfig, MCPConfig, JsonSchema, SchemaProperty } from '../../models/workflow.models';
@@ -21,6 +22,7 @@ import { WorkflowNode, AgentConfig, MCPConfig, JsonSchema, SchemaProperty } from
     IconComponent,
     InputTextComponent,
     SelectComponent,
+    TextAreaComponent,
   ],
   templateUrl: './properties-panel.component.html',
   styleUrl: './properties-panel.component.scss'
@@ -47,7 +49,18 @@ export class PropertiesPanelComponent {
   // Get the currently selected node
   getSelectedNode(): WorkflowNode | null {
     if (!this.selectedNodeId) return null;
-    return this.canvasNodes.find(node => node.id === this.selectedNodeId) || null;
+    const node = this.canvasNodes.find(node => node.id === this.selectedNodeId) || null;
+    
+    // Ensure data is initialized for agent and MCP nodes
+    if (node) {
+      if (node.type === 'agent') {
+        this.ensureAgentData(node);
+      } else if (node.type === 'mcp') {
+        this.ensureMCPData(node);
+      }
+    }
+    
+    return node;
   }
 
   // Close the properties panel
