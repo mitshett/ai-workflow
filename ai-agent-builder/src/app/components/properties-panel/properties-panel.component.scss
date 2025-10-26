@@ -379,3 +379,266 @@
     }
   }
 }
+
+// ===============================
+// WORKFLOW VARIABLES STYLES
+// ===============================
+
+.workflow-variables {
+  border-top: 1px solid var(--control-border-default);
+  background: var(--control-bg-subtle);
+
+  .variables-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background: var(--control-bg-hover);
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--base-text-default);
+    }
+
+    pol-icon {
+      transition: transform 0.2s ease;
+    }
+  }
+
+  .variables-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+
+    &.expanded {
+      max-height: 600px; // Large enough to show content
+      overflow-y: auto;
+    }
+
+    .variable-category {
+      border-top: 1px solid var(--control-border-default);
+      
+      &:first-child {
+        border-top: none;
+      }
+
+      .variable-category-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px 8px;
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--base-text-medium-default);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: var(--control-bg-default);
+      }
+
+      .variable-items {
+        padding: 0 20px 12px;
+
+        .variable-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          margin-bottom: 4px;
+          background: var(--control-bg-default);
+          border: 1px solid var(--control-border-default);
+          border-radius: 6px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--control-bg-hover);
+            border-color: var(--control-border-emphasis);
+          }
+
+          .variable-name {
+            flex: 1;
+            font-family: var(--base-font-mono);
+            font-size: 12px;
+            color: var(--base-text-default);
+            background: transparent;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--control-bg-subtle);
+            word-break: break-all;
+          }
+
+          .variable-type {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--base-text-medium-default);
+            background: var(--control-bg-subtle);
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          }
+
+          .copy-button {
+            background: transparent;
+            border: 1px solid var(--control-border-default);
+            color: var(--base-text-medium-default);
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+              background: var(--control-bg-hover);
+              border-color: var(--control-border-emphasis);
+              color: var(--base-text-default);
+            }
+
+            pol-icon {
+              pointer-events: none;
+            }
+          }
+        }
+      }
+    }
+
+    // Custom scrollbar for variables content
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: var(--control-bg-subtle);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--control-border-default);
+      border-radius: 3px;
+      
+      &:hover {
+        background: var(--control-border-emphasis);
+      }
+    }
+  }
+}
+
+// ===============================
+// AUTOCOMPLETE STYLES
+// ===============================
+
+.instructions-container {
+  .textarea-wrapper {
+    position: relative;
+  }
+
+  .autocomplete-dropdown {
+    position: fixed;
+    z-index: 9999;
+    background: var(--control-bg-default);
+    border: 1px solid var(--control-border-emphasis);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    max-height: 200px;
+    overflow-y: auto;
+    min-width: 280px;
+    max-width: 400px;
+    
+    // Ensure it stays within viewport bounds
+    max-height: min(200px, 50vh);
+    
+    // Animation for smooth appearance
+    opacity: 0;
+    transform: translateY(-5px);
+    animation: autocompleteAppear 0.15s ease-out forwards;
+    
+    .autocomplete-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--control-border-default);
+      transition: background-color 0.2s ease;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover,
+      &.active {
+        background: var(--control-bg-hover);
+      }
+
+      .variable-path {
+        font-family: var(--base-font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--base-text-default);
+        background: var(--control-bg-subtle);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      .variable-type {
+        font-size: 10px;
+        font-weight: 500;
+        color: var(--base-text-medium-default);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        align-self: flex-start;
+        background: var(--control-bg-subtle);
+        padding: 2px 6px;
+        border-radius: 3px;
+      }
+
+      .variable-description {
+        font-size: 11px;
+        color: var(--base-text-medium-default);
+        font-style: italic;
+      }
+    }
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: var(--control-bg-subtle);
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--control-border-default);
+      border-radius: 3px;
+      
+      &:hover {
+        background: var(--control-border-emphasis);
+      }
+    }
+  }
+}
+
+// ===============================
+// ANIMATIONS
+// ===============================
+
+@keyframes autocompleteAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

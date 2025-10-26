@@ -61,33 +61,50 @@
       <div class="form-group">
         <label for="agent-model">Model</label>
         <pol-select id="agent-model" 
+                [options]="modelOptions"
                 [(ngModel)]="getSelectedNode()!.data!.agentConfig!.model">
-          <option value="gpt-35-turbo">GPT-3.5 Turbo</option>
-          <option value="gpt-4">GPT-4</option>
-          <option value="gpt-4-turbo">GPT-4 Turbo</option>
         </pol-select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group instructions-container">
         <label for="agent-instructions">Instructions</label>
-        <textarea id="agent-instructions"
-                  [(ngModel)]="getSelectedNode()!.data!.agentConfig!.instructions"
-                  placeholder="Enter agent instructions..."
-                  rows="4"
-                  class="form-control">
-        </textarea>
+        <div class="textarea-wrapper">
+          <textarea #instructionsTextarea
+                    id="agent-instructions"
+                    [(ngModel)]="getSelectedNode()!.data!.agentConfig!.instructions"
+                    (input)="onInstructionsInput($event, instructionsTextarea)"
+                    (keydown)="onInstructionsKeydown($event, instructionsTextarea)"
+                    placeholder="Enter agent instructions..."
+                    rows="4"
+                    class="form-control">
+          </textarea>
+          
+          <!-- Autocomplete Dropdown -->
+          <div class="autocomplete-dropdown" 
+               *ngIf="showAutocomplete"
+               [style.top.px]="autocompletePosition.top"
+               [style.left.px]="autocompletePosition.left">
+            <div class="autocomplete-item"
+                 *ngFor="let variable of autocompleteVariables; let i = index"
+                 [class.active]="i === activeAutocompleteIndex"
+                 (click)="selectAutocompleteVariable(i, instructionsTextarea)">
+              <code class="variable-path">${{ '{' }}{{variable.path}}{{ '}' }}</code>
+              <span class="variable-type">{{variable.type}}</span>
+              <span class="variable-description" *ngIf="variable.description">{{variable.description}}</span>
+            </div>
+          </div>
+        </div>
         <div class="field-hint">
-          Use <code>$&#123;user_request&#125;</code> to reference user input
+          Type <code>workflow.</code> to see available variables
         </div>
       </div>
 
       <div class="form-group">
         <label for="output-format">Output Format</label>
         <pol-select id="output-format"
+                [options]="outputFormatOptions"
                 [(ngModel)]="getSelectedNode()!.data!.agentConfig!.outputFormat"
-                (change)="onOutputFormatChange()">
-          <option value="text">Plain Text</option>
-          <option value="json">Structured JSON</option>
+                (selectionChange)="onOutputFormatChange()">
         </pol-select>
       </div>
 
@@ -132,12 +149,7 @@
           </div>
           <div class="form-group">
             <label>Type</label>
-            <pol-select [(ngModel)]="variable.type">
-              <option value="string">String</option>
-              <option value="number">Number</option>
-              <option value="boolean">Boolean</option>
-              <option value="object">Object</option>
-              <option value="array">Array</option>
+            <pol-select [options]="variableTypeOptions" [(ngModel)]="variable.type">
             </pol-select>
           </div>
           <div class="form-group">
@@ -202,10 +214,9 @@
       <div class="form-group">
         <label for="server-type">Server Type</label>
         <pol-select id="server-type" 
+                [options]="serverTypeOptions"
                 [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.type"
-                (change)="onMCPServerTypeChange()">
-          <option value="http">HTTP</option>
-          <option value="stdio">Stdio</option>
+                (selectionChange)="onMCPServerTypeChange()">
         </pol-select>
       </div>
 
@@ -340,5 +351,82 @@
     <p class="config-note" *ngIf="getSelectedNode()?.type && !['agent', 'mcp', 'start', 'end'].includes(getSelectedNode()!.type)">
       Configuration for {{ getSelectedNode()?.type }} nodes coming soon
     </p>
+  </div>
+</div>
+
+<!-- Workflow Variables Section -->
+<div class="workflow-variables">
+  <div class="variables-header" (click)="toggleVariablesPanel()">
+    <h4>Workflow Variables</h4>
+    <pol-icon 
+      [iconName]="variablesPanelExpanded ? 'caret-down' : 'caret-right'" 
+      size="small">
+    </pol-icon>
+  </div>
+  
+  <div class="variables-content" [class.expanded]="variablesPanelExpanded">
+    <!-- Workflow Inputs -->
+    <div class="variable-category">
+      <h5 class="variable-category-title">
+        <pol-icon iconName="arrow-right" size="small"></pol-icon>
+        Inputs
+      </h5>
+      <div class="variable-items">
+        <div class="variable-item" *ngFor="let input of getWorkflowInputs()">
+          <code class="variable-name">${{ '{' }}{{input.path}}{{ '}' }}</code>
+          <span class="variable-type">{{input.type}}</span>
+          <button 
+            class="copy-button" 
+            title="Copy variable"
+            (click)="copyToClipboard(input.path)">
+            <pol-icon iconName="copy" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Runtime Variables -->
+    <div class="variable-category">
+      <h5 class="variable-category-title">
+        <pol-icon iconName="clock" size="small"></pol-icon>
+        Runtime
+      </h5>
+      <div class="variable-items">
+        <div class="variable-item" *ngFor="let runtime of getRuntimeVariables()">
+          <code class="variable-name">${{ '{' }}{{runtime.path}}{{ '}' }}</code>
+          <span class="variable-type">{{runtime.type}}</span>
+          <button 
+            class="copy-button" 
+            title="Copy variable"
+            (click)="copyToClipboard(runtime.path)">
+            <pol-icon iconName="copy" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Node Outputs -->
+    <div class="variable-category" *ngFor="let node of canvasNodes">
+      <h5 class="variable-category-title" *ngIf="node.alias">
+        <pol-icon 
+          [iconName]="getNodeIcon(node.type)" 
+          size="small">
+        </pol-icon>
+        {{node.label || node.id}} ({{node.alias}})
+      </h5>
+      <div class="variable-items" *ngIf="node.alias">
+        <!-- Basic node outputs -->
+        <div class="variable-item" *ngFor="let output of getNodeOutputs(node)">
+          <code class="variable-name">${{ '{' }}{{output.path}}{{ '}' }}</code>
+          <span class="variable-type">{{output.type}}</span>
+          <button 
+            class="copy-button" 
+            title="Copy variable"
+            (click)="copyToClipboard(output.path)">
+            <pol-icon iconName="copy" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

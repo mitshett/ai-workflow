@@ -2,11 +2,15 @@
 <aside class="preview-chat-sidebar" *ngIf="isVisible">
   <div class="chat-header">
     <h3>Workflow Preview</h3>
-    <button (click)="closePreviewWorkflow()" aria-label="Close preview chat">
-      <pol-icon iconName="x" size="small"></pol-icon>
-    </button>
+    <div class="header-actions">
+      <!-- Removed view toggle - timeline now embedded in chat -->
+      <button (click)="closePreviewWorkflow()" aria-label="Close preview chat">
+        <pol-icon iconName="" size="small"></pol-icon>
+      </button>
+    </div>
   </div>
   
+  <!-- Chat View with Embedded Timeline -->
   <div class="chat-content">
     <!-- Messages Container -->
     <div class="messages-container">
@@ -22,7 +26,16 @@
           </div>
         </pol-ai-chat-message-heading>
         
-        <p>{{ message.content }}</p>
+        <!-- Regular text content -->
+        <p *ngIf="!message.executionResponse">{{ message.content }}</p>
+        
+        <!-- Timeline content for execution responses -->
+        <div *ngIf="message.executionResponse" class="execution-timeline-container">
+          <app-activity-timeline 
+            [executionResponse]="message.executionResponse"
+            [showOutputs]="true">
+          </app-activity-timeline>
+        </div>
       </pol-ai-chat-message>
       
       <!-- Typing indicator using Polarity AI Components -->

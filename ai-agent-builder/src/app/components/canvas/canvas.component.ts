@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, OnChanges, SimpleChanges, Renderer2 } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, OnChanges, SimpleChanges, Renderer2, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { IconComponent } from '@polarity/components/icon';
@@ -18,12 +18,15 @@ import { WorkflowNode, NodeType, WorkflowConnection } from '../../models/workflo
 export class CanvasComponent implements OnChanges {
   
   @ViewChild('canvasContainer', { static: false }) canvasContainer!: ElementRef;
+  @ViewChild('canvasContent', { static: false }) canvasContent!: ElementRef;
+  
+  private resizeTimeout: any;
   
   constructor(private el: ElementRef, private renderer: Renderer2) {}
   
   ngOnChanges(changes: SimpleChanges): void {
-    // Canvas width is now controlled by CSS custom property --canvas-computed-width
-    // set at the app component level, so we don't need to handle width changes here
+    // Canvas width is controlled by CSS custom property --canvas-computed-width
+    // set at the app component level
   }
   
   // private updateCanvasWidth(width: number): void {
@@ -300,5 +303,19 @@ export class CanvasComponent implements OnChanges {
     const cp2y = to.y;
 
     return `M ${from.x} ${from.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${to.x} ${to.y}`;
+  }
+
+  // Handle window resize events (basic version)
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(): void {
+    // Basic debounced resize handler
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    
+    this.resizeTimeout = setTimeout(() => {
+      // Just log for now - no zoom adjustments
+      console.log('Canvas window resized');
+    }, 150);
   }
 }

@@ -7,7 +7,7 @@
   position: fixed;
   top: 73px; // Fine-tuned alignment with canvas-content top edge
   right: 3px; // Move very close to the right edge
-  width: 400px;
+  width: 450px; // Increased width for less congestion
   height: calc(100vh - 73px - 24px); // Account for top position and bottom margin
   z-index: 300;
 }
@@ -38,22 +38,72 @@
       color: var(--base-text-default);
     }
 
-    button {
-      background: transparent;
-      border: 1px solid var(--control-border-default);
-      color: var(--base-text-medium-default);
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      cursor: pointer;
+    .header-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
+      gap: 12px;
 
-      &:hover {
-        background: var(--control-bg-subtle);
-        border-color: var(--control-border-emphasis);
+      .view-toggle {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px;
+        background: var(--control-bg-default);
+        border: 1px solid var(--control-border-default);
+        border-radius: 6px;
+
+        .toggle-btn {
+          background: transparent;
+          border: none;
+          color: var(--base-text-medium-default);
+          width: 28px;
+          height: 28px;
+          border-radius: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: var(--control-bg-hover);
+            color: var(--base-text-default);
+          }
+
+          &.active {
+            background: var(--control-bg-emphasis);
+            color: var(--base-text-inverted);
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            
+            &:hover {
+              background: transparent;
+              color: var(--base-text-medium-default);
+            }
+          }
+        }
+      }
+
+      > button {
+        background: transparent;
+        border: 1px solid var(--control-border-default);
+        color: var(--base-text-medium-default);
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: var(--control-bg-hover);
+          border-color: var(--control-border-emphasis);
+        }
       }
     }
   }
@@ -154,6 +204,24 @@
       }
     }
   }
+
+  // ===============================
+  // TIMELINE CONTENT STYLES
+  // ===============================
+
+  .timeline-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    app-activity-timeline {
+      flex: 1;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  }
 }
 
 // ===============================
@@ -177,7 +245,7 @@
 
 @media (max-width: 768px) {
   :host {
-    width: 360px;
+    width: 400px; // Increased from 360px for better tablet experience
   }
 }
 
@@ -190,5 +258,42 @@
   
   .preview-chat-sidebar {
     border-radius: 8px 8px 0 0;
+  }
+}
+
+// ===============================
+// EMBEDDED TIMELINE STYLES
+// ===============================
+
+.execution-timeline-container {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  
+  // Override timeline styles to fit better in chat
+  app-activity-timeline {
+    ::ng-deep {
+      .timeline-header {
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      
+      .timeline-items {
+        padding: 0 16px 16px;
+      }
+      
+      .timeline-item {
+        margin-bottom: 12px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      .item-content {
+        font-size: 13px;
+        line-height: 1.4;
+      }
+    }
   }
 }

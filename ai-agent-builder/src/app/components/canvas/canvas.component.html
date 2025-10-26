@@ -1,5 +1,6 @@
 <!-- Main Canvas Area -->
 <main class="canvas">
+
   <!-- Invisible drop zone overlay for sidebar drops only -->
   <div class="drop-zone-overlay"
        cdkDropList
@@ -15,6 +16,8 @@
 
   <!-- Canvas content - separate from drop zone -->
   <div class="canvas-content" #canvasContainer (click)="onDeselectAll($event)">
+    <!-- Canvas content wrapper for viewport transforms -->
+    <div class="canvas-content-wrapper" #canvasContent>
     <!-- Empty state when no nodes -->
     <div class="empty-state" *ngIf="canvasNodes.length === 0">
       <pol-icon iconName="empty-state-illustration-info" size="xlarge"></pol-icon>
@@ -97,5 +100,7 @@
         </div>
       </div>
     </div>
+
+    </div> <!-- Close canvas-content-wrapper -->
   </div>
 </main>

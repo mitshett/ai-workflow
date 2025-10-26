@@ -42,7 +42,8 @@
       [selectedNodeId]="selectedNodeId"
       [canvasNodes]="canvasNodes"
       (closePanel)="closePropertiesPanel()"
-      (nodeUpdate)="onNodeUpdated($event)">
+      (nodeUpdate)="onNodeUpdated($event)"
+      (openJsonSchemaModal)="onOpenJsonSchemaModal()">
     </app-properties-panel>
   </aside>
 

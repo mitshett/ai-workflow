@@ -1,4 +1,4 @@
-import { Component, HostListener, ElementRef, Renderer2 } from '@angular/core';
+import { Component, HostListener, ElementRef, Renderer2, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
@@ -42,6 +42,9 @@ export class AppComponent {
   }
 
   // Canvas nodes and connections state
+  // Component references
+  @ViewChild(CanvasComponent) canvasComponent!: CanvasComponent;
+
   canvasNodes: WorkflowNode[] = [];
   connections: WorkflowConnection[] = [];
 
@@ -50,7 +53,7 @@ export class AppComponent {
   canvasWidth = 2000;
   canvasHeight = 1500;
   private propertiesPanelWidth = 340; // Properties panel width (matches CSS)
-  private previewPanelWidth = 400; // Preview panel width
+  private previewPanelWidth = 450; // Preview panel width - increased for less congestion
 
   // Canvas node dragging state - to disable drop zone during internal drags
   isCanvasNodeDragging = false;
@@ -819,23 +822,23 @@ export class AppComponent {
     if (isPropertiesPanelOpen) {
       // Properties panel is open - check if preview panel is also open
       if (this.showPreviewWorkflow) {
-        // Both panels open: sidebar (300px) + properties (340px + margin) + preview (400px)
-        cssValue = `calc(100vw - 300px - ${this.propertiesPanelWidth}px - ${this.previewPanelWidth}px - 2rem)`;
+        // Both panels open: sidebar (250px) + properties (340px + margin) + preview (450px)
+        cssValue = `calc(100vw - 250px - ${this.propertiesPanelWidth}px - ${this.previewPanelWidth}px - 2rem)`;
         console.log('  - Case: BOTH PANELS OPEN');
       } else {
-        // Only properties panel open: sidebar (300px) + properties (340px + margin)
-        cssValue = `calc(100vw - 300px - ${this.propertiesPanelWidth}px - 2rem)`;
+        // Only properties panel open: sidebar (250px) + properties (340px + margin)
+        cssValue = `calc(100vw - 250px - ${this.propertiesPanelWidth}px - 2rem)`;
         console.log('  - Case: ONLY PROPERTIES PANEL OPEN');
       }
     } else {
       // Properties panel closed - check if preview panel is open
       if (this.showPreviewWorkflow) {
-        // Only preview panel open: sidebar (300px) + preview (400px)
-        cssValue = `calc(100vw - 300px - ${this.previewPanelWidth}px)`;
+        // Only preview panel open: sidebar (250px) + preview (450px)
+        cssValue = `calc(100vw - 250px - ${this.previewPanelWidth}px)`;
         console.log('  - Case: ONLY PREVIEW PANEL OPEN');
       } else {
-        // Both panels closed: only sidebar (300px)
-        cssValue = 'calc(100vw - 300px)';
+        // Both panels closed: only sidebar (250px)
+        cssValue = 'calc(100vw - 250px)';
         console.log('  - Case: BOTH PANELS CLOSED');
       }
     }
@@ -850,33 +853,7 @@ export class AppComponent {
     
     console.log('  - CSS variable set via both renderer and direct DOM');
     
-    // Also log the current computed style to verify it was applied
-    setTimeout(() => {
-      const computedValue = getComputedStyle(document.documentElement).getPropertyValue('--canvas-computed-width');
-      console.log('  - Verified CSS value set to:', computedValue);
-      
-      // Also check if the canvas component is getting the variable
-      const canvasElement = document.querySelector('app-canvas');
-      if (canvasElement) {
-        const canvasComputedStyle = getComputedStyle(canvasElement);
-        const canvasWidth = canvasComputedStyle.width;
-        console.log('  - Canvas element actual width:', canvasWidth);
-        console.log('  - Canvas element computed --canvas-computed-width:', canvasComputedStyle.getPropertyValue('--canvas-computed-width'));
-        
-        // Debug canvas positioning
-        const canvasRect = canvasElement.getBoundingClientRect();
-        console.log('  - Canvas element position:', { top: canvasRect.top, left: canvasRect.left, right: canvasRect.right });
-        
-        // Check canvas-content positioning
-        const canvasContent = document.querySelector('.canvas-content');
-        if (canvasContent) {
-          const contentRect = canvasContent.getBoundingClientRect();
-          console.log('  - Canvas-content position:', { top: contentRect.top, left: contentRect.left, right: contentRect.right });
-        }
-      } else {
-        console.log('  - Canvas element not found!');
-      }
-    }, 100);
+    // Canvas width adjustment complete - no additional zoom needed
   }
 
 
@@ -1062,6 +1039,27 @@ export class AppComponent {
     };
 
     this.showJsonSchemaModal = true;
+  }
+
+  // Handle opening JSON schema modal from properties panel
+  onOpenJsonSchemaModal(): void {
+    console.log('🔧 onOpenJsonSchemaModal called');
+    const selectedNode = this.getSelectedNode();
+    console.log('  - selectedNode:', selectedNode);
+    
+    if (!selectedNode || selectedNode.type !== 'agent') {
+      console.log('  - Not an agent node, returning');
+      return;
+    }
+
+    console.log('  - Initializing fresh schema and opening modal');
+    // Initialize fresh schema for setup
+    this.currentJsonSchema = {
+      name: 'response_schema',
+      properties: []
+    };
+    this.showJsonSchemaModal = true;
+    console.log('  - Modal opened, showJsonSchemaModal:', this.showJsonSchemaModal);
   }
 
   editJsonSchema(): void {
