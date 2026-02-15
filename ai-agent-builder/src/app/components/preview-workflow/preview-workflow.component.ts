@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectorRef, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -36,8 +36,14 @@ export class PreviewWorkflowComponent {
   @Input() canvasNodes: WorkflowNode[] = [];
   @Input() connections: WorkflowConnection[] = [];
   @Input() isVisible = false;
+  @Input() sidebarCollapsed = false;
   
   @Output() closePreview = new EventEmitter<void>();
+  
+  // Bind CSS class to host element based on sidebar state
+  @HostBinding('class.sidebar-collapsed') get isSidebarCollapsed() {
+    return this.sidebarCollapsed;
+  }
 
   // Chat state
   chatMessages: ChatMessage[] = [];
@@ -46,6 +52,9 @@ export class PreviewWorkflowComponent {
   
   // Execution results for activity timeline
   currentExecutionResponse?: WorkflowExecutionResponse;
+  
+  // Timeline collapse state - tracks which message timelines are expanded
+  expandedTimelines = new Set<string>();
   
   // View state - no longer needed since timeline is embedded in chat
 
@@ -92,18 +101,68 @@ export class PreviewWorkflowComponent {
     this.closePreview.emit();
   }
 
-  // Validate workflow has minimum required nodes
+  // Validate workflow has minimum required nodes and all nodes are connected
   private validateWorkflowForPreview(): boolean {
-    const hasStart = this.canvasNodes.some(node => node.type === 'start');
-    const hasAgent = this.canvasNodes.some(node => node.type === 'agent');
-    const hasEnd = this.canvasNodes.some(node => node.type === 'end');
+    // Check if there are any nodes
+    if (this.canvasNodes.length === 0) {
+      alert('Workflow must have at least one node for preview.');
+      return false;
+    }
 
-    if (!hasStart || !hasAgent || !hasEnd) {
-      alert('Workflow must have at least one Start node, one Agent node, and one End node for preview.');
+    // Check if all nodes are connected (form a connected graph)
+    if (!this.areAllNodesConnected()) {
+      alert('All nodes in the workflow must be connected to each other for preview.');
       return false;
     }
 
     return true;
+  }
+
+  // Check if all nodes in the workflow are connected to each other
+  private areAllNodesConnected(): boolean {
+    // If there's only one node, it's considered connected
+    if (this.canvasNodes.length <= 1) {
+      return true;
+    }
+
+    // If there are no connections but multiple nodes, they're not connected
+    if (this.connections.length === 0) {
+      return false;
+    }
+
+    // Build adjacency list for undirected graph
+    const adjacencyList = new Map<string, Set<string>>();
+    
+    // Initialize adjacency list with all node IDs
+    this.canvasNodes.forEach(node => {
+      adjacencyList.set(node.id, new Set<string>());
+    });
+
+    // Add connections (treating as undirected graph)
+    this.connections.forEach(connection => {
+      adjacencyList.get(connection.sourceNodeId)?.add(connection.targetNodeId);
+      adjacencyList.get(connection.targetNodeId)?.add(connection.sourceNodeId);
+    });
+
+    // Perform BFS/DFS to check if all nodes are reachable from the first node
+    const visited = new Set<string>();
+    const queue = [this.canvasNodes[0].id];
+    visited.add(this.canvasNodes[0].id);
+
+    while (queue.length > 0) {
+      const currentNodeId = queue.shift()!;
+      const neighbors = adjacencyList.get(currentNodeId) || new Set();
+      
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    // All nodes should be visited if they're all connected
+    return visited.size === this.canvasNodes.length;
   }
 
   // Send chat message and execute workflow
@@ -201,7 +260,164 @@ export class PreviewWorkflowComponent {
   }
 
   // ===============================
-  // VIEW MANAGEMENT METHODS - REMOVED
-  // Timeline is now embedded directly in chat messages
+  // TIMELINE COLLAPSE METHODS
   // ===============================
+  
+  toggleTimelineVisibility(messageId: string): void {
+    if (this.expandedTimelines.has(messageId)) {
+      this.expandedTimelines.delete(messageId);
+    } else {
+      this.expandedTimelines.add(messageId);
+    }
+  }
+
+  isTimelineExpanded(messageId: string): boolean {
+    return this.expandedTimelines.has(messageId);
+  }
+
+  // ===============================
+  // MAPPED NODE RESPONSE DISPLAY
+  // ===============================
+
+  public getMappedNodeResponse(executionResponse: WorkflowExecutionResponse): string | null {
+    // Find the end node and its configured node name
+    const endNode = this.canvasNodes.find(node => node.type === 'end');
+    if (!endNode?.data?.endConfig?.nodeName) {
+      return null;
+    }
+
+    const nodeName = endNode.data.endConfig.nodeName.trim();
+    if (!nodeName) {
+      return null;
+    }
+
+    // Find the corresponding canvas node to get its ID
+    const canvasNode = this.canvasNodes.find(node => 
+      node.label === nodeName || 
+      node.alias === nodeName ||
+      node.id === nodeName
+    );
+
+    if (!canvasNode) {
+      return null;
+    }
+
+    // Find the node result with the matching ID
+    const nodeResult = executionResponse.nodes.find(node => 
+      node.node_id === canvasNode.id ||
+      node.node_name === canvasNode.id ||
+      node.node_name === canvasNode.label ||
+      node.node_name === canvasNode.alias
+    );
+
+    if (!nodeResult || !nodeResult.response) {
+      return null;
+    }
+
+    // Always return the response text - let the template decide when to show it
+    return nodeResult.response.trim() || null;
+  }
+
+  // Get structured output for display after timeline
+  public getMappedNodeStructuredOutput(executionResponse: WorkflowExecutionResponse): any {
+    // Find the end node and its configured node name
+    const endNode = this.canvasNodes.find(node => node.type === 'end');
+    if (!endNode?.data?.endConfig?.nodeName) {
+      return null;
+    }
+
+    const nodeName = endNode.data.endConfig.nodeName.trim();
+    if (!nodeName) {
+      return null;
+    }
+
+    // Find the corresponding canvas node to get its ID
+    const canvasNode = this.canvasNodes.find(node => 
+      node.label === nodeName || 
+      node.alias === nodeName ||
+      node.id === nodeName
+    );
+
+    if (!canvasNode) {
+      return null;
+    }
+
+    // Find the node result with the matching ID
+    const nodeResult = executionResponse.nodes.find(node => 
+      node.node_id === canvasNode.id ||
+      node.node_name === canvasNode.id ||
+      node.node_name === canvasNode.label ||
+      node.node_name === canvasNode.alias
+    );
+
+    if (!nodeResult) {
+      return null;
+    }
+
+    // First try structured_output field
+    if (nodeResult.structured_output && Object.keys(nodeResult.structured_output).length > 0) {
+      // Clean up the structured output if it contains escaped JSON
+      return this.cleanStructuredOutput(nodeResult.structured_output);
+    }
+
+    // If no structured_output, try to parse response as JSON
+    if (nodeResult.response) {
+      try {
+        // Clean the response by removing markdown JSON blocks and escape characters
+        let cleanResponse = nodeResult.response;
+        cleanResponse = cleanResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        
+        // Try to parse as JSON
+        const parsed = JSON.parse(cleanResponse);
+        return this.cleanStructuredOutput(parsed);
+      } catch {
+        // Not valid JSON, return null
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  // Clean structured output by removing escape characters and fixing formatting
+  private cleanStructuredOutput(data: any): any {
+    if (!data) return null;
+    
+    // If it's a string that looks like JSON, try to parse it
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return data;
+      }
+    }
+    
+    // If it's an object, clean up any string values that might have escape characters
+    if (typeof data === 'object' && data !== null) {
+      const cleaned: any = Array.isArray(data) ? [] : {};
+      
+      for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string') {
+          // Remove escape characters from string values
+          let cleanValue = value;
+          try {
+            // If the string contains JSON, parse it
+            if (cleanValue.includes('{') && cleanValue.includes('}')) {
+              cleanValue = JSON.parse(cleanValue);
+            }
+          } catch {
+            // Not JSON, just remove common escape characters
+            cleanValue = cleanValue.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+          }
+          cleaned[key] = cleanValue;
+        } else {
+          cleaned[key] = this.cleanStructuredOutput(value);
+        }
+      }
+      
+      return cleaned;
+    }
+    
+    return data;
+  }
 }

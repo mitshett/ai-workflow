@@ -1,0 +1,157 @@
+<!-- Properties Panel Header -->
+<div class="properties-panel-header">
+  <div class="node-info">
+    <div class="node-icon">
+      <pol-icon [iconName]="getIconName(getSelectedNode()?.icon || 'circle')" size="medium"></pol-icon>
+    </div>
+    <div class="node-details">
+      <h3>{{ getSelectedNode()?.label || 'Unknown' }}</h3>
+      <span class="node-type">{{ getSelectedNode()?.type || 'unknown' }}</span>
+    </div>
+  </div>
+  <button (click)="onClosePanel()" aria-label="Close properties panel">
+    <pol-icon iconName="x" size="small"></pol-icon>
+  </button>
+</div>
+
+<div class="properties-panel-body">
+  <!-- Alias Section -->
+  <app-alias-section
+    [selectedNode]="getSelectedNode()!"
+    [placeholder]="'e.g., weather, token, summary'"
+    [hasError]="hasAliasError()"
+    [errorMessage]="getAliasErrorMessage()"
+    (aliasChange)="onAliasChange($event)">
+  </app-alias-section>
+
+  <!-- Agent Configuration Section -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Agent Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="agent-name">Agent Name</label>
+        <pol-input-text 
+               id="agent-name"
+               [(ngModel)]="getSelectedNode()!.data!.agentConfig!.name" 
+               (ngModelChange)="onAgentNameChange($event)"
+               placeholder="Enter agent name">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="agent-model">Model</label>
+        <pol-select id="agent-model" 
+                [options]="modelOptions"
+                [(ngModel)]="getSelectedNode()!.data!.agentConfig!.model">
+        </pol-select>
+      </div>
+
+      <div class="form-group instructions-container">
+        <label for="agent-instructions">Instructions</label>
+        <div class="textarea-wrapper">
+          <textarea #instructionsTextarea
+                    id="agent-instructions"
+                    [(ngModel)]="getSelectedNode()!.data!.agentConfig!.instructions"
+                    (input)="onInstructionsInput($event, instructionsTextarea)"
+                    (keydown)="onInstructionsKeydown($event, instructionsTextarea)"
+                    placeholder="Enter agent instructions..."
+                    rows="4"
+                    class="form-control">
+          </textarea>
+          
+          <!-- Autocomplete Dropdown -->
+          <div class="autocomplete-dropdown" 
+               *ngIf="showAutocomplete"
+               [style.top.px]="autocompletePosition.top"
+               [style.left.px]="autocompletePosition.left">
+            <div class="autocomplete-item"
+                 *ngFor="let variable of autocompleteVariables; let i = index"
+                 [class.active]="i === activeAutocompleteIndex"
+                 (click)="selectAutocompleteVariable(i, instructionsTextarea)">
+              <code class="variable-path">${{ '{' }}{{variable.path}}{{ '}' }}</code>
+            </div>
+          </div>
+        </div>
+        <div class="field-hint">
+          Type <code>workflow.</code> to see available variables
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="output-format">Output Format</label>
+        <pol-select id="output-format"
+                [options]="outputFormatOptions"
+                [(ngModel)]="getSelectedNode()!.data!.agentConfig!.outputFormat"
+                (selectionChange)="onOutputFormatChange()">
+        </pol-select>
+      </div>
+
+      <!-- JSON Schema Configuration -->
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.agentConfig!.outputFormat === 'json'">
+        <label>JSON Schema</label>
+        <div class="json-schema-controls">
+          <button pol-button variant="secondary" size="small" 
+                  *ngIf="!getSelectedNode()!.data!.agentConfig!.jsonSchema" 
+                  (click)="setupJsonSchema()">
+            <pol-icon iconName="plus" size="small"></pol-icon>
+            Setup Schema
+          </button>
+          <div *ngIf="getSelectedNode()!.data!.agentConfig!.jsonSchema" class="schema-status">
+            <span class="schema-indicator">✓ Schema Configured</span>
+            <button pol-button variant="tertiary" size="small" (click)="editJsonSchema()">
+              <pol-icon iconName="pencil" size="small"></pol-icon>
+              Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State Variables Section -->
+  <!-- <div class="property-section">
+    <div class="section-header">
+      <h4>State Variables</h4>
+    </div>
+    <div class="section-content">
+      <div class="variables-list">
+        <div *ngFor="let variable of getSelectedNode()!.data!.agentConfig!.stateVariables!; let i = index" 
+             class="variable-item">
+          <div class="form-group">
+            <label>Variable Name</label>
+            <pol-input-text 
+                   [(ngModel)]="variable.name"
+                   [disabled]="variable.name === 'user_request'"
+                   placeholder="Variable name">
+            </pol-input-text>
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <pol-select [options]="variableTypeOptions" [(ngModel)]="variable.type">
+            </pol-select>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <pol-input-text 
+                   [(ngModel)]="variable.description"
+                   placeholder="Variable description">
+            </pol-input-text>
+          </div>
+          <button *ngIf="variable.name !== 'user_request'"
+                  pol-button 
+                  variant="secondary" 
+                  size="small"
+                  (click)="removeAgentStateVariable(i)">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <button pol-button variant="secondary" size="small" (click)="addAgentStateVariable()">
+        Add Variable
+      </button>
+    </div>
+  </div> -->
+</div>

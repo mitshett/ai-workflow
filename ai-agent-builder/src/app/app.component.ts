@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { HeaderComponent } from '@polarity/components/header';
 import { ButtonComponent } from '@polarity/components/button';
-import { HeaderUtilityButtonComponent } from '@polarity/components/header';
 import { IconComponent } from '@polarity/components/icon';
 import { InputTextComponent } from '@polarity/components/input-text';
+import { HeaderComponent } from './components/header/header.component';
+import { FooterComponent } from './components/footer/footer.component';
 import { WorkflowNode, NodeTemplate, NodeType, WorkflowConnection, AgentConfig, Tool, JsonSchema, SchemaProperty, ChatMessage } from './models/workflow.models';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { CanvasComponent } from './components/canvas/canvas.component';
@@ -23,8 +23,8 @@ import { PreviewWorkflowComponent } from './components/preview-workflow/preview-
     DragDropModule,
     HttpClientModule,
     HeaderComponent,
+    FooterComponent,
     ButtonComponent,
-    HeaderUtilityButtonComponent,
     IconComponent,
     InputTextComponent,
     SidebarComponent,
@@ -44,6 +44,7 @@ export class AppComponent {
   // Canvas nodes and connections state
   // Component references
   @ViewChild(CanvasComponent) canvasComponent!: CanvasComponent;
+  @ViewChild(PropertiesPanelComponent) propertiesPanelComponent!: PropertiesPanelComponent;
 
   canvasNodes: WorkflowNode[] = [];
   connections: WorkflowConnection[] = [];
@@ -52,6 +53,7 @@ export class AppComponent {
   private originalCanvasWidth = 2000;
   canvasWidth = 2000;
   canvasHeight = 1500;
+  private sidebarTotalWidth = 270; // Sidebar (250px) + margins (20px)
   private propertiesPanelWidth = 340; // Properties panel width (matches CSS)
   private previewPanelWidth = 450; // Preview panel width - increased for less congestion
 
@@ -83,6 +85,9 @@ export class AppComponent {
   // Preview workflow state
   showPreviewWorkflow = false;
   showPreviewWorkflowVisual = false; // Controls visual display with delay
+  
+  // Sidebar collapse state
+  sidebarCollapsed = false;
 
 
 
@@ -118,21 +123,21 @@ export class AppComponent {
     },
     {
       type: 'if-else',
-      label: 'If / else',
+      label: 'Condition',
       icon: 'flow-arrow',
       color: '#06b6d4',
       description: 'Conditional logic branching'
     },
     {
       type: 'sequential',
-      label: 'Sequential',
+      label: 'Chain',
       icon: 'minus',
       color: '#06b6d4',
       description: 'Execute tasks in sequence'
     },
     {
       type: 'parallel',
-      label: 'Parallel',
+      label: 'Branch',
       icon: 'list',
       color: '#06b6d4',
       description: 'Execute tasks in parallel'
@@ -647,6 +652,12 @@ export class AppComponent {
       return;
     }
 
+    // Prevent properties panel from opening when preview workflow is active
+    if (this.showPreviewWorkflow) {
+      console.log('🚫 Node selection blocked - preview workflow is active');
+      return;
+    }
+
     if (event) {
       event.stopPropagation(); // Prevent canvas deselection
     }
@@ -667,6 +678,12 @@ export class AppComponent {
 
   // Connection line selection
   selectConnection(connectionId: string, event?: MouseEvent): void {
+    // Prevent connection selection when preview workflow is active
+    if (this.showPreviewWorkflow) {
+      console.log('🚫 Connection selection blocked - preview workflow is active');
+      return;
+    }
+
     if (event) {
       event.stopPropagation();
     }
@@ -816,33 +833,43 @@ export class AppComponent {
     console.log('⚙️ ADJUST CANVAS FOR PROPERTIES PANEL');
     console.log('  - isPropertiesPanelOpen =', isPropertiesPanelOpen);
     console.log('  - showPreviewWorkflow =', this.showPreviewWorkflow);
+    console.log('  - sidebarCollapsed =', this.sidebarCollapsed);
     
     let cssValue = '';
+    
+    // Calculate effective sidebar width based on collapse state
+    const effectiveSidebarWidth = this.sidebarCollapsed ? 0 : this.sidebarTotalWidth;
+    
+    // Preview width changes based on sidebar state - wider when sidebar collapsed
+    const effectivePreviewWidth = this.showPreviewWorkflow ? 
+      (this.sidebarCollapsed ? 720 : this.previewPanelWidth) : 0;
     
     if (isPropertiesPanelOpen) {
       // Properties panel is open - check if preview panel is also open
       if (this.showPreviewWorkflow) {
-        // Both panels open: sidebar (250px) + properties (340px + margin) + preview (450px)
-        cssValue = `calc(100vw - 250px - ${this.propertiesPanelWidth}px - ${this.previewPanelWidth}px - 2rem)`;
+        // Both panels open: sidebar + properties + preview (preview width varies)
+        cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${this.propertiesPanelWidth}px - ${effectivePreviewWidth}px - 2rem)`;
         console.log('  - Case: BOTH PANELS OPEN');
       } else {
-        // Only properties panel open: sidebar (250px) + properties (340px + margin)
-        cssValue = `calc(100vw - 250px - ${this.propertiesPanelWidth}px - 2rem)`;
+        // Only properties panel open: sidebar + properties
+        cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${this.propertiesPanelWidth}px - 2rem)`;
         console.log('  - Case: ONLY PROPERTIES PANEL OPEN');
       }
     } else {
       // Properties panel closed - check if preview panel is open
       if (this.showPreviewWorkflow) {
-        // Only preview panel open: sidebar (250px) + preview (450px)
-        cssValue = `calc(100vw - 250px - ${this.previewPanelWidth}px)`;
+        // Only preview panel open: sidebar + preview (preview width varies)
+        cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${effectivePreviewWidth}px)`;
         console.log('  - Case: ONLY PREVIEW PANEL OPEN');
       } else {
-        // Both panels closed: only sidebar (250px)
-        cssValue = 'calc(100vw - 250px)';
+        // Both panels closed: only sidebar
+        cssValue = `calc(100vw - ${effectiveSidebarWidth}px)`;
         console.log('  - Case: BOTH PANELS CLOSED');
       }
     }
     
+    console.log('  - Effective sidebar width:', effectiveSidebarWidth);
+    console.log('  - Effective preview width:', effectivePreviewWidth);
     console.log('  - Setting --canvas-computed-width to:', cssValue);
     
     // Try multiple methods to set the CSS variable
@@ -941,14 +968,27 @@ export class AppComponent {
         name: node.label,
         description: 'MCP tool integration',
         server: {
-          type: 'http',
-          url: 'http://localhost:8080',
+          type: 'streamable-http',
+          url: 'http://host.docker.internal:8182/mcp/',
+          headers: {
+            'Accept': 'application/json, text/event-stream'
+          },
           timeout: 30
         },
+        smart_mcp_enabled: false,
         toolName: '',
         toolArguments: {},
+        tool_arguments: {},
+        output_format: 'json',
+        llm_config: {
+          provider: 'azure_openai',
+          model: 'gpt-35-turbo',
+          temperature: 0.1,
+          max_tokens: 800
+        },
+        user_prompt: '',
+        context_data: {},
         timeout: 60,
-        retryAttempts: 3,
         availableTools: []
       };
     }
@@ -1052,14 +1092,20 @@ export class AppComponent {
       return;
     }
 
-    console.log('  - Initializing fresh schema and opening modal');
-    // Initialize fresh schema for setup
-    this.currentJsonSchema = {
-      name: 'response_schema',
-      properties: []
-    };
+    // Load existing schema from node if it exists, otherwise create fresh one
+    if (selectedNode.data?.agentConfig?.jsonSchema) {
+      console.log('  - Loading existing schema from node');
+      this.currentJsonSchema = JSON.parse(JSON.stringify(selectedNode.data.agentConfig.jsonSchema));
+    } else {
+      console.log('  - Initializing fresh schema');
+      this.currentJsonSchema = {
+        name: 'response_schema',
+        properties: []
+      };
+    }
+    
     this.showJsonSchemaModal = true;
-    console.log('  - Modal opened, showJsonSchemaModal:', this.showJsonSchemaModal);
+    console.log('  - Modal opened, currentJsonSchema:', this.currentJsonSchema);
   }
 
   editJsonSchema(): void {
@@ -1083,6 +1129,7 @@ export class AppComponent {
     selectedNode.data!.agentConfig!.jsonSchema = JSON.parse(JSON.stringify(this.currentJsonSchema));
 
     console.log('Applied JSON schema:', this.currentJsonSchema);
+    
     this.closeJsonSchemaModal();
   }
 
@@ -1342,23 +1389,23 @@ export class AppComponent {
 
     const outputs = [
       {
-        path: `workflow.${node.alias}.output`,
+        path: `workflow.${node.alias}`,
         type: node.type === 'agent' ? 'string|object' : 'object',
-        description: 'Full node response'
+        description: 'Full node output'
       },
       {
-        path: `workflow.${node.alias}.status`,
-        type: 'string',
-        description: 'Execution status (success/failed)'
+        path: `workflow.${node.alias}.success`,
+        type: 'boolean',
+        description: 'Execution success flag'
       }
     ];
 
     // Add MCP-specific outputs
     if (node.type === 'mcp') {
       outputs.push({
-        path: `workflow.${node.alias}.success`,
-        type: 'boolean',
-        description: 'Tool execution success flag'
+        path: `workflow.${node.alias}.data`,
+        type: 'object',
+        description: 'Tool response data payload'
       });
       outputs.push({
         path: `workflow.${node.alias}.tool_name`,
@@ -1500,13 +1547,25 @@ export class AppComponent {
   openPreviewWorkflow(): void {
     console.log('🔵 OPENING PREVIEW WORKFLOW');
     console.log('  - Before: showPreviewWorkflow =', this.showPreviewWorkflow);
+    console.log('  - Before: sidebarCollapsed =', this.sidebarCollapsed);
     console.log('  - selectedNodeId =', this.selectedNodeId);
+    
+    // Close any open properties panel first
+    if (this.selectedNodeId) {
+      console.log('  - Closing properties panel before opening preview');
+      this.selectedNodeId = null;
+      this.selectedConnectionId = null;
+    }
     
     // Set internal state immediately for calculations
     this.showPreviewWorkflow = true;
     
-    // Start canvas width adjustment immediately
-    this.adjustCanvasForPropertiesPanel(this.selectedNodeId !== null);
+    // Collapse sidebar when preview opens
+    this.sidebarCollapsed = true;
+    console.log('  - After: sidebarCollapsed =', this.sidebarCollapsed);
+    
+    // Start canvas width adjustment immediately (no properties panel open now)
+    this.adjustCanvasForPropertiesPanel(false);
     
     // Delay visual appearance to match canvas transition (0.3s)
     setTimeout(() => {
@@ -1519,6 +1578,7 @@ export class AppComponent {
   closePreviewWorkflow(): void {
     console.log('🔴 CLOSING PREVIEW WORKFLOW');
     console.log('  - Before: showPreviewWorkflow =', this.showPreviewWorkflow);
+    console.log('  - Before: sidebarCollapsed =', this.sidebarCollapsed);
     console.log('  - selectedNodeId =', this.selectedNodeId);
     
     // Hide visual immediately
@@ -1527,11 +1587,72 @@ export class AppComponent {
     // Update internal state
     this.showPreviewWorkflow = false;
     
+    // Expand sidebar when preview closes
+    this.sidebarCollapsed = false;
+    console.log('  - After: sidebarCollapsed =', this.sidebarCollapsed);
+    
     console.log('  - After: showPreviewWorkflow =', this.showPreviewWorkflow);
     console.log('  - Calling adjustCanvasForPropertiesPanel with isPropertiesPanelOpen =', this.selectedNodeId !== null);
     
     // Restore canvas width using same logic as properties panel
     this.adjustCanvasForPropertiesPanel(this.selectedNodeId !== null);
+  }
+
+  // ===============================
+  // VALIDATE WORKFLOW FUNCTIONALITY
+  // ===============================
+
+  // Validate workflow
+  validateWorkflow(): void {
+    console.log('🔍 VALIDATING WORKFLOW');
+    
+    // Basic validation checks
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Check if there are any nodes
+    if (this.canvasNodes.length === 0) {
+      errors.push('Workflow is empty. Add at least one node.');
+    }
+    
+    // Check for start node
+    const startNodes = this.canvasNodes.filter(node => node.type === 'start');
+    if (startNodes.length === 0) {
+      errors.push('Workflow must have a Start node.');
+    } else if (startNodes.length > 1) {
+      warnings.push('Multiple Start nodes detected. Only one is recommended.');
+    }
+    
+    // Check for end node
+    const endNodes = this.canvasNodes.filter(node => node.type === 'end');
+    if (endNodes.length === 0) {
+      warnings.push('Workflow should have an End node.');
+    }
+    
+    // Check for orphaned nodes (nodes without connections)
+    if (this.canvasNodes.length > 1) {
+      const connectedNodeIds = new Set();
+      this.connections.forEach(conn => {
+        connectedNodeIds.add(conn.sourceNodeId);
+        connectedNodeIds.add(conn.targetNodeId);
+      });
+      
+      const orphanedNodes = this.canvasNodes.filter(node => !connectedNodeIds.has(node.id));
+      if (orphanedNodes.length > 0) {
+        warnings.push(`${orphanedNodes.length} unconnected node(s) found.`);
+      }
+    }
+    
+    // Display validation results
+    if (errors.length === 0 && warnings.length === 0) {
+      console.log('✅ Workflow validation passed!');
+      // TODO: Show success message to user
+    } else {
+      console.log('⚠️ Workflow validation issues:');
+      errors.forEach(error => console.log('  ERROR:', error));
+      warnings.forEach(warning => console.log('  WARNING:', warning));
+      // TODO: Show validation results to user in a modal or toast
+    }
   }
 
 

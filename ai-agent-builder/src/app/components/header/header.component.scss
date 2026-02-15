@@ -1,0 +1,84 @@
+.cisco-header {
+  height: 64px;
+  background: #1e40af;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    
+    .cisco-logo {
+      display: flex;
+      align-items: center;
+      
+      .product-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
+      }
+    }
+  }
+  
+  .header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    
+    .app-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+      margin: 0;
+    }
+  }
+  
+  .header-right {
+    display: flex;
+    align-items: center;
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        
+        .user-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          line-height: 1.2;
+        }
+        
+        .user-role {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.8);
+          line-height: 1.2;
+        }
+      }
+      
+      .user-avatar {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .avatar-icon {
+          font-size: 18px;
+          color: white;
+        }
+      }
+    }
+  }
+}

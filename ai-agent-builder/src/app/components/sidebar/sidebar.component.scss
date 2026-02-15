@@ -3,120 +3,109 @@
 // Left Sidebar
 .sidebar {
   width: 250px;
-  background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0 12px 12px 0;
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  margin-top: 16px;
-  gap: 24px;
+  padding: 20px;
+  gap: 20px;
   overflow-y: auto;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
   position: relative;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-  }
 
   // Workflow header styles moved to WorkflowHeaderComponent
 
   // Search section styles moved to SearchBarComponent
 
+
   .node-categories {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
 
     .category-section {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
 
       .category-header {
-        margin: 0 0 12px 0;
         font-size: 11px;
-        font-weight: 600;
-        color: #a0aec0;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.6);
         text-transform: uppercase;
         letter-spacing: 1px;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 6px;
-        border-left: 2px solid #4a5568;
+        margin: 0 0 12px 0;
+        padding: 8px 12px 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       .node-item {
+        display: flex;
+        align-items: center;
         justify-content: flex-start;
         gap: 12px;
-        padding: 14px 16px;
+        padding: 14px 18px;
         text-align: left;
         width: 100%;
         cursor: grab;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s ease;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        background: rgba(255, 255, 255, 0.03);
-        color: #e2e8f0;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.9);
         font-weight: 500;
+        font-size: 14px;
         position: relative;
         overflow: hidden;
-
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-        }
+        margin-bottom: 2px;
 
         &:hover {
-          background: rgba(255, 255, 255, 0.08);
-          transform: translateX(6px);
-          border-color: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          color: #f7fafc;
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.2);
+          transform: translateY(-1px);
+          color: white;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         &.cdk-drag-dragging {
           cursor: grabbing;
-          transform: rotate(2deg) scale(1.08);
-          opacity: 0.95;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-          background: rgba(255, 255, 255, 0.12);
+          transform: scale(1.02);
+          opacity: 0.9;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+          z-index: 1000;
         }
 
-        // Node type specific colors - brighter for dark theme
+        pol-icon {
+          flex-shrink: 0;
+          font-size: 18px;
+        }
+
+        // Node type specific colors - more subtle but clear
         &.start-node pol-icon {
-          color: #4ade80; // Brighter green for start
+          color: #22c55e; // Green for start
         }
 
         &.end-node pol-icon {
-          color: #f87171; // Brighter red for end
+          color: #ef4444; // Red for end
         }
 
         &.agent-node pol-icon {
-          color: #60a5fa; // Brighter blue for agent
+          color: #3b82f6; // Blue for agent
         }
 
-        &.note-node pol-icon {
-          color: #fbbf24; // Brighter yellow for note
+        &.mcp-node pol-icon {
+          color: #f59e0b; // Amber for MCP tools
         }
 
-        &.tool-node pol-icon {
-          color: #a78bfa; // Brighter purple for tools
+        &.ifelse-node pol-icon {
+          color: #8b5cf6; // Purple for if/else logic
         }
 
-        &.logic-node pol-icon {
-          color: #22d3ee; // Brighter cyan for logic
+        &.sequential-node pol-icon {
+          color: #06b6d4; // Cyan for sequential
+        }
+
+        &.parallel-node pol-icon {
+          color: #10b981; // Emerald for parallel
         }
       }
     }

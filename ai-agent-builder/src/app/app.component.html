@@ -1,42 +1,55 @@
-<!-- AI Agent Builder - Polarity Components Only -->
-<header pol-header name="AI Agent Builder">
-  <!-- Header utility buttons projected to correct slot -->
-  <button pol-header-utility icon="gear" ariaLabel="Settings"></button>
-</header>
+<!-- AI Workflow Designer Header -->
+<app-header></app-header>
 
 <!-- Main Application Layout -->
 <div class="app-layout">
-  <!-- Left Sidebar -->
-  <app-sidebar 
-    [canvasNodes]="canvasNodes"
-    (previewChatRequested)="openPreviewWorkflow()">
-  </app-sidebar>
+  <!-- Left Sidebar with Action Buttons -->
+  <div class="sidebar-container" *ngIf="!sidebarCollapsed">
+    <!-- Action Buttons -->
+    <div class="action-buttons-container">
+      <button pol-button variant="secondary" size="small" class="validate-button" (click)="validateWorkflow()">
+        <pol-icon iconName="check" size="small"></pol-icon>
+        Validate
+      </button>
+      <button pol-button variant="primary" size="small" class="preview-button" (click)="openPreviewWorkflow()">
+        <pol-icon iconName="play" size="small"></pol-icon>
+        Preview
+      </button>
+    </div>
+
+    <!-- Left Sidebar -->
+    <app-sidebar 
+      [canvasNodes]="canvasNodes">
+    </app-sidebar>
+  </div>
 
   <!-- Main Canvas Area -->
-  <app-canvas
-    [canvasNodes]="canvasNodes"
-    [connections]="connections"
-    [selectedNodeId]="selectedNodeId"
-    [selectedConnectionId]="selectedConnectionId"
-    [isCanvasNodeDragging]="isCanvasNodeDragging"
-    [isDragging]="isDragging"
-    [canvasWidth]="canvasWidth"
-    [canvasHeight]="canvasHeight"
-    [isConnecting]="isConnecting"
-    [connectingFrom]="connectingFrom"
-    [tempConnection]="tempConnection"
-    (canvasDrop)="onCanvasDrop($event)"
-    (nodeSelect)="selectNode($event.nodeId, $event.event)"
-    (connectionSelect)="selectConnection($event.connectionId, $event.event)"
-    (deselectAll)="deselectAll()"
-    (nodeDragStart)="onNodeDragStart($event.event, $event.node)"
-    (nodeDragEnd)="onNodeDragEnd($event.event, $event.node)"
-    (connectionStart)="startConnection($event.event, $event.nodeId, $event.handleType)"
-    (connectionCreated)="onConnectionCreated($event)"
-    (connectionStateChange)="onConnectionStateChange($event)">
-  </app-canvas>
+  <div class="canvas-container">
+    <app-canvas
+      [canvasNodes]="canvasNodes"
+      [connections]="connections"
+      [selectedNodeId]="selectedNodeId"
+      [selectedConnectionId]="selectedConnectionId"
+      [isCanvasNodeDragging]="isCanvasNodeDragging"
+      [isDragging]="isDragging"
+      [canvasWidth]="canvasWidth"
+      [canvasHeight]="canvasHeight"
+      [isConnecting]="isConnecting"
+      [connectingFrom]="connectingFrom"
+      [tempConnection]="tempConnection"
+      (canvasDrop)="onCanvasDrop($event)"
+      (nodeSelect)="selectNode($event.nodeId, $event.event)"
+      (connectionSelect)="selectConnection($event.connectionId, $event.event)"
+      (deselectAll)="deselectAll()"
+      (nodeDragStart)="onNodeDragStart($event.event, $event.node)"
+      (nodeDragEnd)="onNodeDragEnd($event.event, $event.node)"
+      (connectionStart)="startConnection($event.event, $event.nodeId, $event.handleType)"
+      (connectionCreated)="onConnectionCreated($event)"
+      (connectionStateChange)="onConnectionStateChange($event)">
+    </app-canvas>
+  </div>
 
-  <!-- Properties Panel Component - Back inside layout -->
+  <!-- Properties Panel Component - Back to right side -->
   <aside class="properties-panel" *ngIf="selectedNodeId">
     <app-properties-panel
       [selectedNodeId]="selectedNodeId"
@@ -54,6 +67,7 @@
   [canvasNodes]="canvasNodes"
   [connections]="connections"
   [isVisible]="showPreviewWorkflowVisual"
+  [sidebarCollapsed]="sidebarCollapsed"
   (closePreview)="closePreviewWorkflow()">
 </app-preview-workflow>
 

@@ -93,8 +93,9 @@ export interface AgentConfig {
 }
 
 export interface MCPServerConfig {
-  type: 'http' | 'stdio';
+  type: 'http' | 'streamable-http' | 'stdio';
   url?: string;
+  headers?: { [key: string]: string };
   timeout?: number;
   command?: string;
   args?: string[];
@@ -107,15 +108,37 @@ export interface MCPTool {
   enabled: boolean;
 }
 
+export interface MCPLLMConfig {
+  provider: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+}
+
 export interface MCPConfig {
   name?: string;
   description?: string;
   server: MCPServerConfig;
+  smart_mcp_enabled: boolean;
+  
+  // Regular MCP fields (when smart_mcp_enabled = false)
   toolName?: string;
   toolArguments?: { [key: string]: any };
-  timeout?: number;
-  retryAttempts?: number;
+  tool_arguments?: { [key: string]: any };
+  output_format?: string;
+  
+  // Smart MCP fields (when smart_mcp_enabled = true)
+  llm_config?: MCPLLMConfig;
+  user_prompt?: string;
+  context_data?: { [key: string]: any };
+  
+  // Common fields
+  timeout: number;
   availableTools?: MCPTool[];
+}
+
+export interface EndConfig {
+  nodeName?: string; // Name of the node whose response should be displayed
 }
 
 export interface NodeData {
@@ -123,6 +146,7 @@ export interface NodeData {
   stateVariables?: Variable[];
   agentConfig?: AgentConfig;
   mcpConfig?: MCPConfig;
+  endConfig?: EndConfig;
   [key: string]: any;
 }
 

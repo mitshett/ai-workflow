@@ -10,12 +10,38 @@ import {
   WorkflowConnection 
 } from '../models/workflow.models';
 
+// MCP Discovery types
+export interface MCPDiscoverRequest {
+  server_url: string;
+  server_type: string;
+  headers?: { [key: string]: string };
+  timeout?: number;
+}
+
+export interface MCPToolSchema {
+  name: string;
+  description?: string;
+  input_schema?: {
+    type?: string;
+    properties?: { [key: string]: any };
+    required?: string[];
+  };
+}
+
+export interface MCPDiscoverResponse {
+  success: boolean;
+  server_url: string;
+  tools: MCPToolSchema[];
+  error?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class WorkflowExecutionService {
   
-  private readonly apiUrl = 'http://localhost:8000/api/v1/workflows';
+  private readonly apiUrl = 'http://localhost:8003/api/v1/workflows';
+  private readonly mcpApiUrl = 'http://localhost:8003/api/v1/mcp';
   
   // Subject to track current execution state
   private executionStateSubject = new BehaviorSubject<{
@@ -77,6 +103,18 @@ export class WorkflowExecutionService {
    */
   checkApiHealth(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // ===============================
+  // MCP DISCOVERY METHODS
+  // ===============================
+
+  /**
+   * Discover available tools from an MCP server
+   */
+  discoverTools(request: MCPDiscoverRequest): Observable<MCPDiscoverResponse> {
+    return this.http.post<MCPDiscoverResponse>(`${this.mcpApiUrl}/discover`, request)
       .pipe(catchError(this.handleError));
   }
 
@@ -202,8 +240,12 @@ export class WorkflowExecutionService {
     else if (canvasNode.type === 'agent' && canvasNode.data?.agentConfig) {
       const agentConfig = canvasNode.data.agentConfig;
       workflowNode.config = {
-        provider: 'azure_openai',
-        model: agentConfig.model || 'gpt-35-turbo',
+        llm_config: {
+          provider: 'azure_openai',
+          model: agentConfig.model || 'gpt-35-turbo',
+          temperature: 0.7,
+          max_tokens: 500
+        },
         prompt: this.resolveAliasVariables(
           this.processAgentInstructions(
             agentConfig.instructions || 'You are a helpful AI assistant. User request: ${workflow.input.user_request}', 
@@ -211,8 +253,7 @@ export class WorkflowExecutionService {
           ), 
           aliasMap
         ),
-        temperature: 0.7,
-        max_tokens: 500,
+        system_prompt: 'You are a professional assistant.',
         timeout: 60
       };
 
@@ -226,17 +267,52 @@ export class WorkflowExecutionService {
     else if (canvasNode.type === 'mcp' && canvasNode.data?.mcpConfig) {
       const mcpConfig = canvasNode.data.mcpConfig;
       workflowNode.type = 'mcp_tool';
-      workflowNode.config = {
-        server: {
-          type: mcpConfig.server.type || 'http',
-          url: mcpConfig.server.url || 'http://localhost:8080',
-          timeout: mcpConfig.server.timeout || 30
-        },
-        tool_name: mcpConfig.toolName || 'get_oauth_token',
-        tool_arguments: this.resolveAliasVariablesInObject(mcpConfig.toolArguments || {}, aliasMap),
-        timeout: mcpConfig.timeout || 60,
-        retry_attempts: mcpConfig.retryAttempts || 3
-      };
+      
+      if (mcpConfig.smart_mcp_enabled) {
+        // Smart MCP configuration
+        workflowNode.config = {
+          server: {
+            type: mcpConfig.server.type || 'streamable-http',
+            url: mcpConfig.server.url || 'http://host.docker.internal:8182/mcp/',
+            headers: mcpConfig.server.headers || {},
+            timeout: mcpConfig.server.timeout || 30
+          },
+          smart_mcp_enabled: true,
+          llm_config: {
+            provider: mcpConfig.llm_config?.provider || 'azure_openai',
+            model: mcpConfig.llm_config?.model || 'gpt-35-turbo',
+            temperature: mcpConfig.llm_config?.temperature || 0.1,
+            max_tokens: mcpConfig.llm_config?.max_tokens || 800
+          },
+          user_prompt: this.resolveAliasVariables(
+            mcpConfig.user_prompt || '', 
+            aliasMap
+          ),
+          context_data: this.resolveAliasVariablesInObject(
+            mcpConfig.context_data || {}, 
+            aliasMap
+          ),
+          timeout: mcpConfig.timeout || 120
+        };
+      } else {
+        // Regular MCP configuration
+        workflowNode.config = {
+          server: {
+            type: mcpConfig.server.type || 'streamable-http',
+            url: mcpConfig.server.url || 'http://host.docker.internal:8182/mcp/',
+            headers: mcpConfig.server.headers || {},
+            timeout: mcpConfig.server.timeout || 30
+          },
+          smart_mcp_enabled: false,
+          tool_name: mcpConfig.toolName || 'jira_get_issue',
+          tool_arguments: this.resolveAliasVariablesInObject(
+            mcpConfig.tool_arguments || mcpConfig.toolArguments || {}, 
+            aliasMap
+          ),
+          output_format: mcpConfig.output_format || 'json',
+          timeout: mcpConfig.timeout || 60
+        };
+      }
     }
     else if (canvasNode.type === 'end') {
       workflowNode.config = {

@@ -5,7 +5,7 @@
     <div class="header-actions">
       <!-- Removed view toggle - timeline now embedded in chat -->
       <button (click)="closePreviewWorkflow()" aria-label="Close preview chat">
-        <pol-icon iconName="" size="small"></pol-icon>
+        <pol-icon iconName="x" size="small"></pol-icon>
       </button>
     </div>
   </div>
@@ -31,10 +31,47 @@
         
         <!-- Timeline content for execution responses -->
         <div *ngIf="message.executionResponse" class="execution-timeline-container">
-          <app-activity-timeline 
-            [executionResponse]="message.executionResponse"
-            [showOutputs]="true">
-          </app-activity-timeline>
+          <div class="timeline-toggle-header" (click)="toggleTimelineVisibility(message.id)">
+            <pol-icon 
+              [iconName]="isTimelineExpanded(message.id) ? 'minus' : 'plus'" 
+              size="small">
+            </pol-icon>
+            <span>Workflow Execution Details</span>
+          </div>
+          <div class="timeline-content" [class.expanded]="isTimelineExpanded(message.id)">
+            <app-activity-timeline 
+              [executionResponse]="message.executionResponse"
+              [showOutputs]="true">
+            </app-activity-timeline>
+          </div>
+        </div>
+
+        <!-- Node response display (show only if end node is configured) -->
+        <div *ngIf="message.executionResponse && getMappedNodeResponse(message.executionResponse)">
+          
+          <!-- Show structured output if available, otherwise show response text -->
+          <div *ngIf="getMappedNodeStructuredOutput(message.executionResponse); else showResponseText">
+            <!-- Structured output section -->
+            <div class="mapped-structured-output">
+              <div class="structured-header">
+                <h4>Structured Output:</h4>
+              </div>
+              <div class="json-container">
+                <pre>{{ getMappedNodeStructuredOutput(message.executionResponse) | json }}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Response text (only show when no structured output) -->
+          <ng-template #showResponseText>
+            <div class="mapped-node-response">
+              <div class="response-header">
+                <h4>Response:</h4>
+              </div>
+              <p>{{ getMappedNodeResponse(message.executionResponse) }}</p>
+            </div>
+          </ng-template>
+          
         </div>
       </pol-ai-chat-message>
       

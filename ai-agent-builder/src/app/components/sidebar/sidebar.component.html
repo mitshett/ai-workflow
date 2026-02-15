@@ -1,25 +1,14 @@
 <!-- Left Sidebar -->
 <aside class="sidebar">
-  <!-- Workflow Info Section -->
-  <app-workflow-header 
-    workflowTitle="Untitled Workflow"
-    (publishClicked)="onPublish()"
-    (previewClicked)="onPreviewChat()">
-  </app-workflow-header>
-
-  <!-- Search Section -->
-  <app-search-bar 
-    placeholder="Insert node..." 
-    size="small">
-  </app-search-bar>
-
   <!-- Node Categories -->
   <div class="node-categories" cdkDropList
        id="sidebar-nodes"
        [cdkDropListConnectedTo]="['canvas-drop-zone']"
        cdkDropListSortingDisabled="true">
-    <!-- Direct Nodes -->
+    
+    <!-- Workflow Section -->
     <div class="category-section">
+      <h4 class="category-header">Workflow</h4>
       <button pol-button variant="tertiary" size="small" class="node-item start-node"
               cdkDrag [cdkDragData]="getDragData('start')"
               (cdkDragStarted)="onDragStart($event, 'start')"
@@ -27,19 +16,24 @@
         <pol-icon iconName="play-circle" size="medium"></pol-icon>
         Start
       </button>
-      <button pol-button variant="tertiary" size="small" class="node-item agent-node"
-              cdkDrag [cdkDragData]="getDragData('agent')"
-              (cdkDragStarted)="onDragStart($event, 'agent')"
-              (cdkDragEnded)="onDragEnd($event)">
-        <pol-icon iconName="robot" size="medium"></pol-icon>
-        Agent
-      </button>
       <button pol-button variant="tertiary" size="small" class="node-item end-node"
               cdkDrag [cdkDragData]="getDragData('end')"
               (cdkDragStarted)="onDragStart($event, 'end')"
               (cdkDragEnded)="onDragEnd($event)">
         <pol-icon iconName="stop-circle" size="medium"></pol-icon>
         End
+      </button>
+    </div>
+
+    <!-- Agents Section -->
+    <div class="category-section">
+      <h4 class="category-header">Agents</h4>
+      <button pol-button variant="tertiary" size="small" class="node-item agent-node"
+              cdkDrag [cdkDragData]="getDragData('agent')"
+              (cdkDragStarted)="onDragStart($event, 'agent')"
+              (cdkDragEnded)="onDragEnd($event)">
+        <pol-icon iconName="robot" size="medium"></pol-icon>
+        Agent
       </button>
     </div>
 
@@ -55,29 +49,29 @@
       </button>
     </div>
 
-    <!-- Logic Section -->
+    <!-- Control Flow Section -->
     <div class="category-section">
-      <h4 class="category-header">Logic</h4>
+      <h4 class="category-header">Control Flow</h4>
       <button pol-button variant="tertiary" size="small" class="node-item ifelse-node"
               cdkDrag [cdkDragData]="getDragData('if-else')"
               (cdkDragStarted)="onDragStart($event, 'if-else')"
               (cdkDragEnded)="onDragEnd($event)">
         <pol-icon iconName="flow-arrow" size="medium"></pol-icon>
-        If / else
+        Condition
       </button>
       <button pol-button variant="tertiary" size="small" class="node-item sequential-node"
               cdkDrag [cdkDragData]="getDragData('sequential')"
               (cdkDragStarted)="onDragStart($event, 'sequential')"
               (cdkDragEnded)="onDragEnd($event)">
         <pol-icon iconName="minus" size="medium"></pol-icon>
-        Sequential
+        Chain
       </button>
       <button pol-button variant="tertiary" size="small" class="node-item parallel-node"
               cdkDrag [cdkDragData]="getDragData('parallel')"
               (cdkDragStarted)="onDragStart($event, 'parallel')"
               (cdkDragEnded)="onDragEnd($event)">
         <pol-icon iconName="list" size="medium"></pol-icon>
-        Parallel
+        Branch
       </button>
     </div>
   </div>

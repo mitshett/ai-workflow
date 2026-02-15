@@ -5,8 +5,35 @@
   flex-direction: column;
 
   pol-search {
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    width: 100%;
+    max-width: 100%;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
+    
+    // Ensure the inner input also respects width constraints
+    ::ng-deep input {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.9);
+      
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+    }
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    &:focus-within {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
   }
 }

@@ -1,0 +1,465 @@
+<!-- Properties Panel Header -->
+<div class="properties-panel-header">
+  <div class="node-info">
+    <div class="node-icon">
+      <pol-icon [iconName]="getIconName(getSelectedNode()?.icon || 'circle')" size="medium"></pol-icon>
+    </div>
+    <div class="node-details">
+      <h3>{{ getSelectedNode()?.label || 'Unknown' }}</h3>
+      <span class="node-type">{{ getSelectedNode()?.type || 'unknown' }}</span>
+    </div>
+  </div>
+  <button (click)="onClosePanel()" aria-label="Close properties panel">
+    <pol-icon iconName="x" size="small"></pol-icon>
+  </button>
+</div>
+
+<div class="properties-panel-body">
+  <!-- Alias Section -->
+  <app-alias-section
+    [selectedNode]="getSelectedNode()!"
+    [placeholder]="'e.g., api_call, fetch_data, webhook'"
+    [hasError]="hasAliasError()"
+    [errorMessage]="getAliasErrorMessage()"
+    (aliasChange)="onAliasChange($event)">
+  </app-alias-section>
+
+  <!-- MCP Basic Configuration -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>MCP Configuration</h4>
+      <div class="smart-mcp-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" 
+                 [ngModel]="getSelectedNode()!.data!.mcpConfig!.smart_mcp_enabled"
+                 (ngModelChange)="onSmartMCPToggle($event)"
+                 class="toggle-checkbox">
+          <span class="toggle-text">Smart MCP</span>
+        </label>
+      </div>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="mcp-name">MCP Name</label>
+        <pol-input-text 
+               id="mcp-name"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.name" 
+               (ngModelChange)="onMCPNameChange($event)"
+               placeholder="Enter MCP node name">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group">
+        <label for="mcp-description">Description</label>
+        <pol-input-text 
+               id="mcp-description"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.description" 
+               placeholder="Enter description">
+        </pol-input-text>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Server Configuration -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Server Configuration</h4>
+    </div>
+    <div class="section-content">
+      <div class="form-group">
+        <label for="server-type">Server Type</label>
+        <pol-select id="server-type" 
+                [options]="serverTypeOptions"
+                [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.type"
+                (selectionChange)="onMCPServerTypeChange()">
+        </pol-select>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'http' || getSelectedNode()!.data!.mcpConfig!.server.type === 'streamable-http'">
+        <label for="server-url">Server URL</label>
+        <div class="url-with-fetch">
+          <pol-input-text 
+                 id="server-url"
+                 [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.url" 
+                 placeholder="http://localhost:8080">
+          </pol-input-text>
+          <button pol-button variant="primary" size="small" 
+                  (click)="fetchTools()"
+                  [disabled]="isDiscoveringTools"
+                  class="fetch-tools-btn">
+            <pol-icon *ngIf="!isDiscoveringTools" iconName="download" size="small"></pol-icon>
+            <span *ngIf="isDiscoveringTools" class="spinner"></span>
+            {{ isDiscoveringTools ? 'Fetching...' : 'Fetch Tools' }}
+          </button>
+        </div>
+        <div *ngIf="discoverySuccess && !discoveryError" class="discovery-status success">
+          {{ discoveredTools.length }} tool{{ discoveredTools.length !== 1 ? 's' : '' }} discovered
+        </div>
+        <div *ngIf="discoveryError" class="discovery-status error">
+          {{ discoveryError }}
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'stdio'">
+        <label for="server-command">Command</label>
+        <pol-input-text 
+               id="server-command"
+               [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.command" 
+               placeholder="npx @modelcontextprotocol/server-example">
+        </pol-input-text>
+      </div>
+
+      <div class="form-group" *ngIf="getSelectedNode()!.data!.mcpConfig!.server.type === 'stdio'">
+        <label for="server-args">Arguments</label>
+        <textarea id="server-args"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.server.args"
+                  placeholder="--port 8080"
+                  rows="3"
+                  class="form-control">
+        </textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Regular MCP Configuration (when Smart MCP is disabled) -->
+  <ng-container *ngIf="!getSelectedNode()!.data!.mcpConfig!.smart_mcp_enabled">
+    <!-- Tool Configuration -->
+    <div class="property-section">
+      <div class="section-header">
+        <h4>Tool Configuration</h4>
+      </div>
+      <div class="section-content">
+        <div class="form-group">
+          <label for="tool-name">Tool Name</label>
+          <!-- Dropdown when tools have been discovered -->
+          <pol-select *ngIf="toolOptions.length > 0"
+                  id="tool-name"
+                  [options]="toolOptions"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.toolName"
+                  (selectionChange)="onToolSelected($event)"
+                  placeholder="Select a tool">
+          </pol-select>
+          <!-- Fallback text input when no tools discovered -->
+          <pol-input-text *ngIf="toolOptions.length === 0"
+                 id="tool-name"
+                 [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.toolName" 
+                 placeholder="Fetch tools from server, or enter name manually">
+          </pol-input-text>
+          <!-- Tool description hint -->
+          <div *ngIf="getSelectedNode()!.data!.mcpConfig!.toolName && discoveredTools.length > 0" class="tool-description-hint">
+            <ng-container *ngFor="let tool of discoveredTools">
+              <span *ngIf="tool.name === getSelectedNode()!.data!.mcpConfig!.toolName && tool.description">
+                {{ tool.description }}
+              </span>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="output-format">Output Format</label>
+          <pol-select id="output-format"
+                  [options]="outputFormatOptions"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.output_format"
+                  placeholder="Select format">
+          </pol-select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tool Arguments -->
+    <div class="property-section">
+      <div class="section-header">
+        <h4>Tool Arguments</h4>
+      </div>
+      <div class="section-content">
+        <div class="arguments-controls">
+          <button pol-button variant="secondary" size="small" 
+                  *ngIf="!getSelectedNode()!.data!.mcpConfig!.toolArguments || getMCPToolArgumentsArray().length === 0" 
+                  (click)="openArgumentsManager()">
+            <pol-icon iconName="plus" size="small"></pol-icon>
+            Setup Arguments
+          </button>
+          <div *ngIf="getSelectedNode()!.data!.mcpConfig!.toolArguments && getMCPToolArgumentsArray().length > 0" class="arguments-status">
+            <span class="status-indicator">✓ Arguments Configured ({{getMCPToolArgumentsArray().length}})</span>
+            <button pol-button variant="tertiary" size="small" (click)="openArgumentsManager()">
+              <pol-icon iconName="pencil" size="small"></pol-icon>
+              Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Smart MCP Configuration (when Smart MCP is enabled) -->
+  <ng-container *ngIf="getSelectedNode()!.data!.mcpConfig!.smart_mcp_enabled">
+    <!-- LLM Configuration -->
+    <div class="property-section">
+      <div class="section-header">
+        <h4>LLM Configuration</h4>
+      </div>
+      <div class="section-content">
+        <div class="form-group">
+          <label for="llm-provider">Provider</label>
+          <pol-select id="llm-provider" 
+                  [options]="llmProviderOptions"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.llm_config!.provider">
+          </pol-select>
+        </div>
+
+        <div class="form-group">
+          <label for="llm-model">Model</label>
+          <pol-select id="llm-model" 
+                  [options]="modelOptions"
+                  [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.llm_config!.model">
+          </pol-select>
+        </div>
+
+        <div class="form-group">
+          <label for="temperature">Temperature</label>
+          <pol-input-text 
+                 id="temperature"
+                 [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.llm_config!.temperature"
+                 placeholder="0.1">
+          </pol-input-text>
+        </div>
+
+        <div class="form-group">
+          <label for="max-tokens">Max Tokens</label>
+          <pol-input-text 
+                 id="max-tokens"
+                 [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.llm_config!.max_tokens"
+                 placeholder="800">
+          </pol-input-text>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Prompt -->
+    <div class="property-section">
+      <div class="section-header">
+        <h4>User Prompt</h4>
+      </div>
+      <div class="section-content">
+        <div class="form-group">
+          <label for="user-prompt">Prompt Template</label>
+          <textarea #userPromptTextarea
+                    id="user-prompt"
+                    [(ngModel)]="getSelectedNode()!.data!.mcpConfig!.user_prompt"
+                    (input)="onUserPromptInput($event, userPromptTextarea)"
+                    (keydown)="onUserPromptKeydown($event, userPromptTextarea)"
+                    placeholder="Get detailed information about Jira issue and provide a comprehensive summary including status, priority, assignee, and key details"
+                    rows="4"
+                    class="form-control">
+          </textarea>
+          
+          <!-- Autocomplete Dropdown -->
+          <div class="autocomplete-dropdown" 
+               *ngIf="showAutocomplete"
+               [style.top.px]="autocompletePosition.top"
+               [style.left.px]="autocompletePosition.left">
+            <div class="autocomplete-item"
+                 *ngFor="let variable of autocompleteVariables; let i = index"
+                 [class.active]="i === activeAutocompleteIndex"
+                 (click)="selectAutocompleteVariable(i, userPromptTextarea)">
+              <code class="variable-path">${{ '{' }}{{variable.path}}{{ '}' }}</code>
+            </div>
+          </div>
+          
+          <div class="field-hint">
+            Type <code>workflow.</code> to see available variables
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Server Headers Configuration (always visible) -->
+  <div class="property-section">
+    <div class="section-header">
+      <h4>Server Headers</h4>
+    </div>
+    <div class="section-content">
+      <div class="headers-controls">
+        <button pol-button variant="secondary" size="small" 
+                *ngIf="!getSelectedNode()!.data!.mcpConfig!.server.headers || getMCPHeadersArray().length === 0" 
+                (click)="openHeadersManager()">
+          <pol-icon iconName="plus" size="small"></pol-icon>
+          Setup Headers
+        </button>
+        <div *ngIf="getSelectedNode()!.data!.mcpConfig!.server.headers && getMCPHeadersArray().length > 0" class="headers-status">
+          <span class="status-indicator">✓ Headers Configured ({{getMCPHeadersArray().length}})</span>
+          <button pol-button variant="tertiary" size="small" (click)="openHeadersManager()">
+            <pol-icon iconName="pencil" size="small"></pol-icon>
+            Edit
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="timeout">Timeout (seconds)</label>
+        <pol-input-text 
+               id="timeout"
+               [ngModel]="getSelectedNode()!.data!.mcpConfig!.timeout"
+               [placeholder]="getSelectedNode()!.data!.mcpConfig!.smart_mcp_enabled ? '120' : '60'">
+        </pol-input-text>
+        <div class="field-hint">
+          Automatically set to {{ getSelectedNode()!.data!.mcpConfig!.smart_mcp_enabled ? '120 seconds for Smart MCP' : '60 seconds for Regular MCP' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Headers Manager Modal -->
+<div class="popover-overlay" *ngIf="showHeadersManager" (click)="cancelHeaders()">
+  <div class="manager-modal" (click)="$event.stopPropagation()">
+    <div class="popover-header">
+      <h4>Manage Headers</h4>
+      <button class="close-button" (click)="cancelHeaders()">
+        <pol-icon iconName="x" size="small"></pol-icon>
+      </button>
+    </div>
+    <div class="manager-content">
+      <div class="manager-list">
+        <div *ngFor="let header of tempHeaders; let i = index" class="manager-item">
+          <div class="form-group">
+            <label>Header Name</label>
+            <pol-input-text 
+              [(ngModel)]="header.key"
+              placeholder="e.g., Accept, Authorization">
+            </pol-input-text>
+          </div>
+          <div class="form-group">
+            <label>Header Value</label>
+            <pol-input-text 
+              [(ngModel)]="header.value"
+              placeholder="e.g., application/json, Bearer token">
+            </pol-input-text>
+          </div>
+          <button class="remove-button" (click)="removeHeaderRow(i)" [disabled]="tempHeaders.length === 1">
+            <pol-icon iconName="trash" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+      <button pol-button variant="secondary" size="small" (click)="addHeaderRow()" class="add-row-button">
+        <pol-icon iconName="plus" size="small"></pol-icon>
+        Add Another Header
+      </button>
+    </div>
+    <div class="popover-footer">
+      <button pol-button variant="tertiary" size="small" (click)="cancelHeaders()">
+        Cancel
+      </button>
+      <button pol-button variant="primary" size="small" (click)="saveHeaders()">
+        Save Headers
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Arguments Manager Modal -->
+<div class="popover-overlay" *ngIf="showArgumentsManager" (click)="cancelArguments()">
+  <div class="manager-modal" (click)="$event.stopPropagation()">
+    <div class="popover-header">
+      <h4>Manage Arguments</h4>
+      <button class="close-button" (click)="cancelArguments()">
+        <pol-icon iconName="x" size="small"></pol-icon>
+      </button>
+    </div>
+    <div class="manager-content">
+      <div class="manager-list">
+        <div *ngFor="let arg of tempArguments; let i = index" class="manager-item">
+          <div class="form-group">
+            <label>Argument Name</label>
+            <pol-input-text 
+              [(ngModel)]="arg.key"
+              placeholder="e.g., issue_key, fields, query">
+            </pol-input-text>
+            <!-- Schema hints for this argument -->
+            <div *ngIf="arg.key && getToolArgumentSchema(arg.key)" class="argument-schema-hint">
+              <span class="arg-type-badge">{{ getToolArgumentSchema(arg.key)!.type || 'any' }}</span>
+              <span *ngIf="getToolArgumentSchema(arg.key)!.required" class="arg-required">required</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Argument Value</label>
+            <pol-input-text 
+              [(ngModel)]="arg.value"
+              placeholder="e.g., DAA-98051, workflow.input.user_request">
+            </pol-input-text>
+            <div *ngIf="arg.key && getToolArgumentSchema(arg.key)?.description" class="argument-description-hint">
+              {{ getToolArgumentSchema(arg.key)!.description }}
+            </div>
+          </div>
+          <button class="remove-button" (click)="removeArgumentRow(i)" [disabled]="tempArguments.length === 1">
+            <pol-icon iconName="trash" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+      <button pol-button variant="secondary" size="small" (click)="addArgumentRow()" class="add-row-button">
+        <pol-icon iconName="plus" size="small"></pol-icon>
+        Add Another Argument
+      </button>
+    </div>
+    <div class="popover-footer">
+      <button pol-button variant="tertiary" size="small" (click)="cancelArguments()">
+        Cancel
+      </button>
+      <button pol-button variant="primary" size="small" (click)="saveArguments()">
+        Save Arguments
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Context Data Manager Modal -->
+<div class="popover-overlay" *ngIf="showContextDataManager" (click)="cancelContextData()">
+  <div class="manager-modal" (click)="$event.stopPropagation()">
+    <div class="popover-header">
+      <h4>Manage Context Data</h4>
+      <button class="close-button" (click)="cancelContextData()">
+        <pol-icon iconName="x" size="small"></pol-icon>
+      </button>
+    </div>
+    <div class="manager-content">
+      <div class="manager-list">
+        <div *ngFor="let data of tempContextData; let i = index" class="manager-item">
+          <div class="form-group">
+            <label>Context Key</label>
+            <pol-input-text 
+              [(ngModel)]="data.key"
+              placeholder="e.g., issue_key, action, user_id">
+            </pol-input-text>
+          </div>
+          <div class="form-group">
+            <label>Context Value</label>
+            <pol-input-text 
+              [(ngModel)]="data.value"
+              placeholder="e.g., workflow.input.issue_key, detailed_analysis">
+            </pol-input-text>
+          </div>
+          <button class="remove-button" (click)="removeContextDataRow(i)" [disabled]="tempContextData.length === 1">
+            <pol-icon iconName="trash" size="small"></pol-icon>
+          </button>
+        </div>
+      </div>
+      <button pol-button variant="secondary" size="small" (click)="addContextDataRow()" class="add-row-button">
+        <pol-icon iconName="plus" size="small"></pol-icon>
+        Add Another Context Item
+      </button>
+    </div>
+    <div class="popover-footer">
+      <button pol-button variant="tertiary" size="small" (click)="cancelContextData()">
+        Cancel
+      </button>
+      <button pol-button variant="primary" size="small" (click)="saveContextData()">
+        Save Context Data
+      </button>
+    </div>
+  </div>
+</div>

@@ -5,7 +5,6 @@ import { ButtonComponent } from '@polarity/components/button';
 import { IconComponent } from '@polarity/components/icon';
 import { WorkflowNode, NodeType } from '../../models/workflow.models';
 import { SearchBarComponent } from './search-bar/search-bar.component';
-import { WorkflowHeaderComponent } from './workflow-header/workflow-header.component';
 
 @Component({
   selector: 'app-sidebar',
@@ -15,8 +14,7 @@ import { WorkflowHeaderComponent } from './workflow-header/workflow-header.compo
     DragDropModule,
     ButtonComponent,
     IconComponent,
-    SearchBarComponent,
-    WorkflowHeaderComponent
+    SearchBarComponent
   ],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
@@ -25,19 +23,6 @@ export class SidebarComponent {
   
   // Input from parent component
   @Input() canvasNodes: WorkflowNode[] = [];
-  
-  // Output events to parent component
-  @Output() previewChatRequested = new EventEmitter<void>();
-
-  // Handle publish button click
-  onPublish(): void {
-    // TODO: Implement publish functionality
-  }
-
-  // Handle preview chat button click
-  onPreviewChat(): void {
-    this.previewChatRequested.emit();
-  }
 
   // Get drag data for CDK drag
   getDragData(nodeType: NodeType): NodeType {

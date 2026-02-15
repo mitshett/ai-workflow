@@ -35,6 +35,14 @@
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
+
+    // Preserve whitespace in description for JSON and formatted text
+    ::ng-deep .pol-activity-timeline__content-body p {
+      white-space: pre-wrap;
+      font-family: var(--base-font-family-mono);
+      font-size: var(--base-font-size-p4);
+      word-break: break-word;
+    }
   }
   
   // ===============================
@@ -111,6 +119,132 @@
       font-size: var(--base-font-size-p3);
       color: var(--base-text-medium-default);
       margin-bottom: 0.75rem;
+    }
+    
+    // ===============================
+    // NODE RESPONSE STYLES
+    // ===============================
+    
+    .node-response {
+      border-top: 1px solid var(--control-border-subtle);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+      
+      .response-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        
+        span {
+          font-size: var(--base-font-size-p4);
+          font-weight: var(--base-font-weight-medium);
+          color: var(--base-text-default);
+        }
+        
+        .toggle-response {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 4px;
+          color: var(--base-text-medium-default);
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background: var(--control-bg-hover);
+            color: var(--base-text-default);
+          }
+          
+          &.expanded pol-icon {
+            transform: rotate(180deg);
+          }
+          
+          pol-icon {
+            transition: transform 0.2s ease;
+          }
+        }
+      }
+      
+      .response-content {
+        background: var(--control-bg-subtle);
+        border: 1px solid var(--control-border-subtle);
+        border-radius: 6px;
+        padding: 0.75rem;
+        
+        p {
+          margin: 0;
+          font-size: var(--base-font-size-p4);
+          color: var(--base-text-default);
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+      }
+    }
+    
+    // ===============================
+    // STRUCTURED OUTPUT STYLES
+    // ===============================
+    
+    .structured-output {
+      border-top: 1px solid var(--control-border-subtle);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+      
+      .output-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        
+        span {
+          font-size: var(--base-font-size-p4);
+          font-weight: var(--base-font-weight-medium);
+          color: rgba(34, 197, 94, 0.9);
+        }
+        
+        .toggle-structured {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 4px;
+          color: var(--base-text-medium-default);
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background: var(--control-bg-hover);
+            color: var(--base-text-default);
+          }
+          
+          &.expanded pol-icon {
+            transform: rotate(180deg);
+          }
+          
+          pol-icon {
+            transition: transform 0.2s ease;
+          }
+        }
+      }
+      
+      .structured-content {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 6px;
+        padding: 0.75rem;
+        max-height: 400px;
+        overflow: auto;
+        
+        .structured-json {
+          margin: 0;
+          font-family: var(--base-font-family-mono);
+          font-size: var(--base-font-size-p4);
+          color: var(--base-text-default);
+          white-space: pre-wrap;
+          word-break: break-word;
+          line-height: 1.5;
+        }
+      }
     }
     
     // ===============================

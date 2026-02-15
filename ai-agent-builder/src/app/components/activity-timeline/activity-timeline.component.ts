@@ -35,19 +35,11 @@ export interface ActivityTimelineItem extends TimelineItem {
     <div class="workflow-activity-timeline">
       <div class="timeline-header" *ngIf="executionResponse">
         <h3>Workflow Execution Timeline</h3>
-        <div class="execution-summary">
-          <pol-badge 
-            [variant]="getStatusBadgeVariant(executionResponse.status)">
-            {{executionResponse.status.toUpperCase()}}
-          </pol-badge>
-          <span class="duration" *ngIf="executionResponse.duration_seconds">
-            Total: {{formatDuration(executionResponse.duration_seconds * 1000)}}
-          </span>
-        </div>
       </div>
 
       <pol-activity-timeline
-        [items]="timelineItems">
+        [items]="timelineItems"
+        [expandable]="true">
         
         <!-- Custom item template -->
         <ng-template #itemTemplate let-item="item">
@@ -103,11 +95,7 @@ export interface ActivityTimelineItem extends TimelineItem {
                 </button>
               </div>
               <div class="structured-content" *ngIf="isStructuredOutputExpanded(item.id)">
-                <div class="structured-data">
-                  <div *ngFor="let entry of item.metadata.structuredOutputEntries" class="data-entry">
-                    <strong>{{entry.key}}:</strong> {{entry.value}}
-                  </div>
-                </div>
+                <pre class="structured-json">{{ item.metadata.structured_output | json }}</pre>
               </div>
             </div>
 
@@ -235,7 +223,6 @@ export class ActivityTimelineComponent implements OnChanges {
     if (nodeResult.response) {
       parts.push(nodeResult.response);
     } else {
-      // Fallback to node type description
       switch (nodeResult.node_type) {
         case 'start':
           parts.push('Workflow initialization');
@@ -260,12 +247,10 @@ export class ActivityTimelineComponent implements OnChanges {
       }
     }
 
-    // Add structured output if available and not empty
+    // Dump full structured output into description
     if (nodeResult.structured_output && Object.keys(nodeResult.structured_output).length > 0) {
-      const structuredOutputStr = this.formatStructuredOutput(nodeResult.structured_output);
-      if (structuredOutputStr) {
-        parts.push(`\n\nStructured Output:\n${structuredOutputStr}`);
-      }
+      const jsonStr = JSON.stringify(nodeResult.structured_output, null, 2);
+      parts.push(`\n\nStructured Output:\n${jsonStr}`);
     }
 
     return parts.join(' ');
