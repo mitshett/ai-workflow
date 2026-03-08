@@ -47,7 +47,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
   // ===============================
   
   cachedMCPToolArguments: Array<{key: string, value: string}> = [];
-  cachedMCPHeaders: Array<{key: string, value: string}> = [];
   cachedMCPContextData: Array<{key: string, value: string}> = [];
 
   // ===============================
@@ -73,14 +72,21 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
   // MANAGEMENT MODAL STATE
   // ===============================
   
-  showHeadersManager = false;
   showArgumentsManager = false;
   showContextDataManager = false;
   
   // Temporary arrays for bulk editing (before save)
-  tempHeaders: Array<{key: string, value: string}> = [];
   tempArguments: Array<{key: string, value: string}> = [];
   tempContextData: Array<{key: string, value: string}> = [];
+
+  // ===============================
+  // ARRAY BUILDER STATE
+  // ===============================
+
+  // Per-argument input mode: 'variable' (text input) or 'builder' (mini table)
+  argInputModes: Record<string, 'variable' | 'builder'> = {};
+  // Per-argument builder rows: each entry is an array of objects matching items.properties
+  argBuilderData: Record<string, Record<string, string>[]> = {};
 
   // ===============================
   // POLARITY SELECT OPTIONS
@@ -130,7 +136,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     // Update MCP-specific cached values
     if (changes['selectedNodeId'] || changes['canvasNodes']) {
       this.updateCachedMCPToolArguments();
-      this.updateCachedMCPHeaders();
       this.updateCachedMCPContextData();
       this.restoreCachedTools();
     }
@@ -154,9 +159,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
         server: {
           type: 'streamable-http',
           url: 'http://host.docker.internal:8182/mcp/',
-          headers: {
-            'Accept': 'application/json, text/event-stream'
-          },
           timeout: 30
         },
         smart_mcp_enabled: false,
@@ -184,11 +186,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     // Ensure smart_mcp_enabled exists with default value
     if (typeof node.data.mcpConfig.smart_mcp_enabled === 'undefined') {
       node.data.mcpConfig.smart_mcp_enabled = false;
-    }
-    
-    // Ensure server headers object exists
-    if (!node.data.mcpConfig.server.headers) {
-      node.data.mcpConfig.server.headers = {};
     }
     
     // Ensure LLM config exists
@@ -222,19 +219,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     
     const toolArguments = this.cachedSelectedNode.data.mcpConfig.toolArguments;
     this.cachedMCPToolArguments = Object.entries(toolArguments).map(([key, value]) => ({
-      key,
-      value: String(value)
-    }));
-  }
-
-  private updateCachedMCPHeaders(): void {
-    if (!this.cachedSelectedNode?.data?.mcpConfig?.server?.headers) {
-      this.cachedMCPHeaders = [];
-      return;
-    }
-    
-    const headers = this.cachedSelectedNode.data.mcpConfig.server.headers;
-    this.cachedMCPHeaders = Object.entries(headers).map(([key, value]) => ({
       key,
       value: String(value)
     }));
@@ -317,11 +301,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     return this.cachedMCPToolArguments;
   }
 
-  // Get MCP headers as array for template iteration
-  getMCPHeadersArray(): Array<{key: string, value: string}> {
-    return this.cachedMCPHeaders;
-  }
-
   // Handle MCP argument key change
   onMCPArgumentKeyChange(event: Event, oldKey: string): void {
     const selectedNode = this.getSelectedNode();
@@ -383,6 +362,25 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     if (this.tempArguments.length === 0) {
       this.tempArguments.push({ key: '', value: '' });
     }
+
+    // Auto-detect input mode per argument
+    this.argInputModes = {};
+    this.argBuilderData = {};
+    for (const arg of this.tempArguments) {
+      if (!arg.key) continue;
+      const schema = this.getToolArgumentSchema(arg.key);
+      if (schema?.type === 'array') {
+        // Try to parse as JSON array for builder mode
+        const parsed = this.tryParseJsonArray(arg.value);
+        if (parsed && !this.isVariableReference(arg.value)) {
+          this.argInputModes[arg.key] = 'builder';
+          this.argBuilderData[arg.key] = parsed;
+        } else {
+          this.argInputModes[arg.key] = 'variable';
+          this.argBuilderData[arg.key] = [];
+        }
+      }
+    }
     
     this.showArgumentsManager = true;
   }
@@ -398,7 +396,17 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     const toolArguments: { [key: string]: string } = {};
     this.tempArguments.forEach(arg => {
       if (arg.key.trim()) {
-        toolArguments[arg.key.trim()] = arg.value;
+        // If this arg is in builder mode, serialize the builder data to JSON
+        if (this.argInputModes[arg.key.trim()] === 'builder') {
+          const rows = this.argBuilderData[arg.key.trim()] || [];
+          // Filter out completely empty rows
+          const nonEmptyRows = rows.filter(row => 
+            Object.values(row).some(v => v && v.trim() !== '')
+          );
+          toolArguments[arg.key.trim()] = JSON.stringify(nonEmptyRows);
+        } else {
+          toolArguments[arg.key.trim()] = arg.value;
+        }
       }
     });
     
@@ -449,137 +457,6 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     
     // Update cached MCP tool arguments
     this.updateCachedMCPToolArguments();
-    
-    // Emit node update
-    this.nodeUpdate.emit(selectedNode);
-  }
-
-  // Handle MCP header key change
-  onMCPHeaderKeyChange(event: Event, oldKey: string): void {
-    const selectedNode = this.getSelectedNode();
-    if (!selectedNode || selectedNode.type !== 'mcp') return;
-
-    const newKey = (event.target as HTMLInputElement).value;
-    if (newKey === oldKey) return;
-
-    this.initializeNodeData(selectedNode);
-    const headers = selectedNode.data!.mcpConfig!.server.headers!;
-    
-    // Update the key
-    const value = headers[oldKey];
-    delete headers[oldKey];
-    headers[newKey] = value;
-    
-    console.log('MCP header key changed:', { oldKey, newKey });
-    
-    // Update cached MCP headers
-    this.updateCachedMCPHeaders();
-    
-    // Emit node update
-    this.nodeUpdate.emit(selectedNode);
-  }
-
-  // Handle MCP header value change
-  onMCPHeaderValueChange(event: Event, key: string): void {
-    const selectedNode = this.getSelectedNode();
-    if (!selectedNode || selectedNode.type !== 'mcp') return;
-
-    const newValue = (event.target as HTMLInputElement).value;
-    
-    this.initializeNodeData(selectedNode);
-    selectedNode.data!.mcpConfig!.server.headers![key] = newValue;
-    
-    console.log('MCP header value changed:', { key, newValue });
-    
-    // Update cached MCP headers
-    this.updateCachedMCPHeaders();
-    
-    // Emit node update
-    this.nodeUpdate.emit(selectedNode);
-  }
-
-  // Open Headers Manager
-  openHeadersManager(): void {
-    const selectedNode = this.getSelectedNode();
-    if (!selectedNode || selectedNode.type !== 'mcp') return;
-
-    this.initializeNodeData(selectedNode);
-    
-    // Copy current headers to temp array for editing
-    this.tempHeaders = this.getMCPHeadersArray().map(header => ({
-      key: header.key,
-      value: header.value
-    }));
-    
-    // If no headers exist, add one empty row to start with
-    if (this.tempHeaders.length === 0) {
-      this.tempHeaders.push({ key: '', value: '' });
-    }
-    
-    this.showHeadersManager = true;
-  }
-
-  // Save Headers from Manager
-  saveHeaders(): void {
-    const selectedNode = this.getSelectedNode();
-    if (!selectedNode || selectedNode.type !== 'mcp') return;
-
-    this.initializeNodeData(selectedNode);
-    
-    // Convert temp array back to object, filtering out empty keys
-    const headers: { [key: string]: string } = {};
-    this.tempHeaders.forEach(header => {
-      if (header.key.trim()) {
-        headers[header.key.trim()] = header.value;
-      }
-    });
-    
-    selectedNode.data!.mcpConfig!.server.headers = headers;
-    console.log('Saved MCP headers:', headers);
-    
-    // Update cached MCP headers
-    this.updateCachedMCPHeaders();
-    
-    // Emit node update
-    this.nodeUpdate.emit(selectedNode);
-    
-    // Close manager
-    this.showHeadersManager = false;
-  }
-
-  // Cancel Headers Manager
-  cancelHeaders(): void {
-    this.showHeadersManager = false;
-    this.tempHeaders = [];
-  }
-
-  // Add Header Row in Manager
-  addHeaderRow(): void {
-    this.tempHeaders.push({ key: '', value: '' });
-  }
-
-  // Remove Header Row in Manager
-  removeHeaderRow(index: number): void {
-    this.tempHeaders.splice(index, 1);
-    
-    // Ensure at least one empty row exists
-    if (this.tempHeaders.length === 0) {
-      this.tempHeaders.push({ key: '', value: '' });
-    }
-  }
-
-  // Remove MCP header
-  removeMCPHeader(key: string): void {
-    const selectedNode = this.getSelectedNode();
-    if (!selectedNode || selectedNode.type !== 'mcp') return;
-
-    this.initializeNodeData(selectedNode);
-    delete selectedNode.data!.mcpConfig!.server.headers![key];
-    
-    console.log('Removed MCP header:', key);
-    
-    // Update cached MCP headers
-    this.updateCachedMCPHeaders();
     
     // Emit node update
     this.nodeUpdate.emit(selectedNode);
@@ -840,8 +717,7 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     this.workflowService.discoverTools({
       server_url: serverUrl,
       server_type: mcpConfig.server.type || 'streamable-http',
-      headers: mcpConfig.server.headers || {},
-      timeout: mcpConfig.server.timeout || 30
+      timeout: 30
     }).subscribe({
       next: (response) => {
         this.isDiscoveringTools = false;
@@ -944,7 +820,7 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
   }
 
   // Get the selected tool's schema for displaying argument hints
-  getToolArgumentSchema(argName: string): { type?: string; description?: string; required: boolean } | null {
+  getToolArgumentSchema(argName: string): { type?: string; description?: string; required: boolean; items?: any } | null {
     const selectedNode = this.getSelectedNode();
     const toolName = selectedNode?.data?.mcpConfig?.toolName;
     if (!toolName) return null;
@@ -957,7 +833,116 @@ export class MCPPropertiesComponent extends BaseNodePropertiesComponent {
     return {
       type: schema.type,
       description: schema.description,
-      required: required.includes(argName)
+      required: required.includes(argName),
+      items: schema.items
     };
+  }
+
+  // ===============================
+  // ARRAY BUILDER METHODS
+  // ===============================
+
+  // Check if a value looks like a variable reference
+  isVariableReference(value: string): boolean {
+    if (!value) return false;
+    const trimmed = value.trim();
+    return trimmed.startsWith('${') || trimmed.startsWith('workflow.');
+  }
+
+  // Try to parse a string as a JSON array
+  private tryParseJsonArray(value: string): Record<string, string>[] | null {
+    if (!value || !value.trim()) return null;
+    try {
+      const parsed = JSON.parse(value.trim());
+      if (Array.isArray(parsed)) {
+        // Normalize each item to Record<string, string>
+        return parsed.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            const row: Record<string, string> = {};
+            for (const [k, v] of Object.entries(item)) {
+              row[k] = String(v ?? '');
+            }
+            return row;
+          }
+          return { value: String(item) };
+        });
+      }
+    } catch {
+      // Not valid JSON
+    }
+    return null;
+  }
+
+  // Get the items.properties keys for an array argument (column definitions)
+  getArrayItemProperties(argKey: string): string[] {
+    const schema = this.getToolArgumentSchema(argKey);
+    if (!schema?.items?.properties) return [];
+    return Object.keys(schema.items.properties);
+  }
+
+  // Get the items.properties schema for a specific column
+  getArrayItemPropertySchema(argKey: string, propKey: string): { type?: string; description?: string } | null {
+    const schema = this.getToolArgumentSchema(argKey);
+    if (!schema?.items?.properties?.[propKey]) return null;
+    return schema.items.properties[propKey];
+  }
+
+  // Get the items type label (e.g., "OBJECT", "STRING")
+  getArrayItemsTypeLabel(argKey: string): string {
+    const schema = this.getToolArgumentSchema(argKey);
+    if (!schema?.items) return 'any';
+    return (schema.items.type || 'any').toUpperCase();
+  }
+
+  // Toggle between variable and builder mode for an array argument
+  toggleArgMode(argKey: string): void {
+    const currentMode = this.argInputModes[argKey] || 'variable';
+
+    if (currentMode === 'variable') {
+      // Switch to builder — try to parse current value
+      const arg = this.tempArguments.find(a => a.key === argKey);
+      const parsed = arg ? this.tryParseJsonArray(arg.value) : null;
+      if (parsed && parsed.length > 0) {
+        this.argBuilderData[argKey] = parsed;
+      } else {
+        // Start with one empty row using the items.properties keys
+        this.addArrayItem(argKey);
+      }
+      this.argInputModes[argKey] = 'builder';
+    } else {
+      // Switch to variable — serialize builder data back to text value
+      const rows = this.argBuilderData[argKey] || [];
+      const nonEmptyRows = rows.filter(row => 
+        Object.values(row).some(v => v && v.trim() !== '')
+      );
+      const arg = this.tempArguments.find(a => a.key === argKey);
+      if (arg) {
+        arg.value = nonEmptyRows.length > 0 ? JSON.stringify(nonEmptyRows) : '';
+      }
+      this.argInputModes[argKey] = 'variable';
+    }
+  }
+
+  // Add an empty row to the array builder
+  addArrayItem(argKey: string): void {
+    if (!this.argBuilderData[argKey]) {
+      this.argBuilderData[argKey] = [];
+    }
+    const props = this.getArrayItemProperties(argKey);
+    const emptyRow: Record<string, string> = {};
+    for (const p of props) {
+      emptyRow[p] = '';
+    }
+    // If no properties defined, add a generic 'value' column
+    if (props.length === 0) {
+      emptyRow['value'] = '';
+    }
+    this.argBuilderData[argKey].push(emptyRow);
+  }
+
+  // Remove a row from the array builder
+  removeArrayItem(argKey: string, index: number): void {
+    if (!this.argBuilderData[argKey]) return;
+    this.argBuilderData[argKey].splice(index, 1);
   }
 }

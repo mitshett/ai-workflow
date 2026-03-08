@@ -14,7 +14,6 @@ import {
 export interface MCPDiscoverRequest {
   server_url: string;
   server_type: string;
-  headers?: { [key: string]: string };
   timeout?: number;
 }
 
@@ -274,8 +273,6 @@ export class WorkflowExecutionService {
           server: {
             type: mcpConfig.server.type || 'streamable-http',
             url: mcpConfig.server.url || 'http://host.docker.internal:8182/mcp/',
-            headers: mcpConfig.server.headers || {},
-            timeout: mcpConfig.server.timeout || 30
           },
           smart_mcp_enabled: true,
           llm_config: {
@@ -292,7 +289,6 @@ export class WorkflowExecutionService {
             mcpConfig.context_data || {}, 
             aliasMap
           ),
-          timeout: mcpConfig.timeout || 120
         };
       } else {
         // Regular MCP configuration
@@ -300,8 +296,6 @@ export class WorkflowExecutionService {
           server: {
             type: mcpConfig.server.type || 'streamable-http',
             url: mcpConfig.server.url || 'http://host.docker.internal:8182/mcp/',
-            headers: mcpConfig.server.headers || {},
-            timeout: mcpConfig.server.timeout || 30
           },
           smart_mcp_enabled: false,
           tool_name: mcpConfig.toolName || 'jira_get_issue',
@@ -310,7 +304,6 @@ export class WorkflowExecutionService {
             aliasMap
           ),
           output_format: mcpConfig.output_format || 'json',
-          timeout: mcpConfig.timeout || 60
         };
       }
     }

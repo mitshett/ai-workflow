@@ -5,6 +5,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { IconComponent } from '@polarity/components/icon';
 import { ButtonComponent } from '@polarity/components/button';
 import { ChatMessageComponent, ChatMessageHeadingComponent } from '@polarity/ai-components/messages';
+import { marked } from 'marked';
 import { 
   WorkflowNode, 
   WorkflowConnection, 
@@ -55,6 +56,9 @@ export class PreviewWorkflowComponent {
   
   // Timeline collapse state - tracks which message timelines are expanded
   expandedTimelines = new Set<string>();
+  
+  // Cache for rendered markdown to avoid re-parsing on every change detection
+  private markdownCache = new Map<string, string>();
   
   // View state - no longer needed since timeline is embedded in chat
 
@@ -419,5 +423,26 @@ export class PreviewWorkflowComponent {
     }
     
     return data;
+  }
+
+  // Render markdown text to sanitized HTML
+  renderMarkdown(text: string | null): string {
+    if (!text) return '';
+
+    // Check cache first
+    const cached = this.markdownCache.get(text);
+    if (cached) return cached;
+
+    // Configure marked for safe rendering
+    const rendered = marked.parse(text, {
+      breaks: true,  // Convert \n to <br>
+      gfm: true      // GitHub-flavored markdown (tables, strikethrough, etc.)
+    });
+
+    // marked.parse can return string | Promise<string>; we only use sync mode
+    const html = typeof rendered === 'string' ? rendered : '';
+
+    this.markdownCache.set(text, html);
+    return html;
   }
 }

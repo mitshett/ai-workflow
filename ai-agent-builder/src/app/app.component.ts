@@ -85,6 +85,7 @@ export class AppComponent {
   // Preview workflow state
   showPreviewWorkflow = false;
   showPreviewWorkflowVisual = false; // Controls visual display with delay
+  private savedNodePositions: Map<string, { x: number; y: number }> = new Map();
   
   // Sidebar collapse state
   sidebarCollapsed = false;
@@ -254,10 +255,10 @@ export class AppComponent {
     const nodeType = event.item.data as NodeType;
     const template = this.getNodeTemplate(nodeType);
 
-    // Get the canvas content element for position calculation
-    const canvasContent = document.querySelector('.canvas-content');
-    if (!canvasContent) {
-      console.error('Canvas content not found');
+    // Get the canvas wrapper element for position calculation (nodes are positioned within wrapper)
+    const canvasWrapper = document.querySelector('.canvas-content-wrapper');
+    if (!canvasWrapper) {
+      console.error('Canvas wrapper not found');
       return;
     }
 
@@ -267,14 +268,14 @@ export class AppComponent {
 
     // Try different ways to get the drop position
     if (event.dropPoint) {
-      const canvasRect = canvasContent.getBoundingClientRect();
-      x = event.dropPoint.x - canvasRect.left - 50; // Center node
-      y = event.dropPoint.y - canvasRect.top - 25; // Center node
+      const wrapperRect = canvasWrapper.getBoundingClientRect();
+      x = event.dropPoint.x - wrapperRect.left - 40; // Center node
+      y = event.dropPoint.y - wrapperRect.top - 18; // Center node
     } else if (event.event) {
       // Use the underlying mouse event
-      const canvasRect = canvasContent.getBoundingClientRect();
-      x = event.event.clientX - canvasRect.left - 50; // Center node
-      y = event.event.clientY - canvasRect.top - 25; // Center node
+      const wrapperRect = canvasWrapper.getBoundingClientRect();
+      x = event.event.clientX - wrapperRect.left - 40; // Center node
+      y = event.event.clientY - wrapperRect.top - 18; // Center node
     } else {
       // Generate a semi-random position to avoid overlap
       const nodeCount = this.canvasNodes.length;
@@ -447,31 +448,32 @@ export class AppComponent {
     const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`);
     if (!nodeElement) {
       // Fallback to model position if element not found
-      const nodeWidth = 120;
-      const nodeHeight = 50;
+      const nodeWidth = 90;
+      const nodeHeight = 36;
       return {
         x: node.position.x + (handleType === 'output' ? nodeWidth : 0),
         y: node.position.y + nodeHeight / 2
       };
     }
 
-    const canvasContentElement = document.querySelector('.canvas-content');
-    if (!canvasContentElement) {
-      // Fallback if canvas content not found
-      const nodeWidth = 120;
-      const nodeHeight = 50;
+    // Use canvas-content-wrapper as reference (SVG is inside wrapper, so coordinates must be wrapper-relative)
+    const wrapperElement = document.querySelector('.canvas-content-wrapper');
+    if (!wrapperElement) {
+      // Fallback if wrapper not found
+      const nodeWidth = 90;
+      const nodeHeight = 36;
       return {
         x: node.position.x + (handleType === 'output' ? nodeWidth : 0),
         y: node.position.y + nodeHeight / 2
       };
     }
 
-    // Calculate position based on actual DOM element position relative to canvas-content
-    const canvasContentRect = canvasContentElement.getBoundingClientRect();
+    // Calculate position based on actual DOM element position relative to wrapper
+    const wrapperRect = wrapperElement.getBoundingClientRect();
     const nodeRect = nodeElement.getBoundingClientRect();
 
-    const relativeX = nodeRect.left - canvasContentRect.left;
-    const relativeY = nodeRect.top - canvasContentRect.top;
+    const relativeX = nodeRect.left - wrapperRect.left;
+    const relativeY = nodeRect.top - wrapperRect.top;
 
     return {
       x: relativeX + (handleType === 'output' ? nodeRect.width : 0),
@@ -512,17 +514,17 @@ export class AppComponent {
 
     // Get the element and log its initial state
     const element = event.source.element.nativeElement;
-    const canvasContentElement = document.querySelector('.canvas-content');
+    const wrapperElement = document.querySelector('.canvas-content-wrapper');
 
     console.log('📍 Node position in model:', node.position);
 
-    if (canvasContentElement) {
-      const canvasContentRect = canvasContentElement.getBoundingClientRect();
+    if (wrapperElement) {
+      const wrapperRect = wrapperElement.getBoundingClientRect();
       const elementRect = element.getBoundingClientRect();
 
-      // Calculate where the element actually is relative to canvas-content
-      const actualRelativeX = elementRect.left - canvasContentRect.left;
-      const actualRelativeY = elementRect.top - canvasContentRect.top;
+      // Calculate where the element actually is relative to wrapper
+      const actualRelativeX = elementRect.left - wrapperRect.left;
+      const actualRelativeY = elementRect.top - wrapperRect.top;
 
       console.log('🔍 POSITION MISMATCH CHECK:');
       console.log('   Model position:', node.position);
@@ -550,11 +552,26 @@ export class AppComponent {
   }
 
   onNodeDragEnd(event: any, node: WorkflowNode): void {
+    // Update model position by adding the drag distance
+    node.position.x += event.distance.x;
+    node.position.y += event.distance.y;
 
-    // Re-enable drop zone only
+    // Re-enable drop zone
     this.isCanvasNodeDragging = false;
-    this.isDragging = false;
 
+    // Wait for Angular to render the new left/top, THEN clear CDK's transform
+    // so the element doesn't jump back to the old position for a frame
+    requestAnimationFrame(() => {
+      const element = event.source.element.nativeElement;
+      element.style.transform = '';
+      event.source._dragRef.reset();
+    });
+
+    // Delay clearing isDragging so the click event that fires after drag end
+    // still sees isDragging=true and skips node selection (prevents panel open on drag)
+    setTimeout(() => {
+      this.isDragging = false;
+    }, 50);
   }
 
   private resetElementDragState(element: HTMLElement, node: WorkflowNode): void {
@@ -611,14 +628,14 @@ export class AppComponent {
 
     // CRITICAL: After reflow, sync model position with actual DOM position
     setTimeout(() => {
-      const canvasContentElement = document.querySelector('.canvas-content');
-      if (canvasContentElement) {
-        const canvasContentRect = canvasContentElement.getBoundingClientRect();
+      const wrapperElement = document.querySelector('.canvas-content-wrapper');
+      if (wrapperElement) {
+        const wrapperRect = wrapperElement.getBoundingClientRect();
         const elementRect = element.getBoundingClientRect();
 
-        // Get the actual position where the element ended up
-        const actualX = elementRect.left - canvasContentRect.left;
-        const actualY = elementRect.top - canvasContentRect.top;
+        // Get the actual position where the element ended up (relative to wrapper)
+        const actualX = elementRect.left - wrapperRect.left;
+        const actualY = elementRect.top - wrapperRect.top;
 
         console.log('   Model position:', node.position);
         console.log('   Actual DOM position:', { x: actualX, y: actualY });
@@ -844,11 +861,19 @@ export class AppComponent {
     const effectivePreviewWidth = this.showPreviewWorkflow ? 
       (this.sidebarCollapsed ? 720 : this.previewPanelWidth) : 0;
     
+    // Use percentage-based split when preview is open and sidebar is collapsed (40/60 split)
+    const usePercentageSplit = this.showPreviewWorkflow && this.sidebarCollapsed;
+    
     if (isPropertiesPanelOpen) {
       // Properties panel is open - check if preview panel is also open
       if (this.showPreviewWorkflow) {
-        // Both panels open: sidebar + properties + preview (preview width varies)
-        cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${this.propertiesPanelWidth}px - ${effectivePreviewWidth}px - 2rem)`;
+        if (usePercentageSplit) {
+          // 40/60 split: canvas gets 40vw minus properties panel
+          cssValue = `calc(40vw - ${this.propertiesPanelWidth}px - 2rem)`;
+        } else {
+          // Both panels open: sidebar + properties + preview (preview width varies)
+          cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${this.propertiesPanelWidth}px - ${effectivePreviewWidth}px - 2rem)`;
+        }
         console.log('  - Case: BOTH PANELS OPEN');
       } else {
         // Only properties panel open: sidebar + properties
@@ -858,8 +883,13 @@ export class AppComponent {
     } else {
       // Properties panel closed - check if preview panel is open
       if (this.showPreviewWorkflow) {
-        // Only preview panel open: sidebar + preview (preview width varies)
-        cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${effectivePreviewWidth}px)`;
+        if (usePercentageSplit) {
+          // 40/60 split: canvas gets 40vw
+          cssValue = '40vw';
+        } else {
+          // Only preview panel open: sidebar + preview (preview width varies)
+          cssValue = `calc(100vw - ${effectiveSidebarWidth}px - ${effectivePreviewWidth}px)`;
+        }
         console.log('  - Case: ONLY PREVIEW PANEL OPEN');
       } else {
         // Both panels closed: only sidebar
@@ -1546,13 +1576,9 @@ export class AppComponent {
   // Open preview workflow
   openPreviewWorkflow(): void {
     console.log('🔵 OPENING PREVIEW WORKFLOW');
-    console.log('  - Before: showPreviewWorkflow =', this.showPreviewWorkflow);
-    console.log('  - Before: sidebarCollapsed =', this.sidebarCollapsed);
-    console.log('  - selectedNodeId =', this.selectedNodeId);
     
     // Close any open properties panel first
     if (this.selectedNodeId) {
-      console.log('  - Closing properties panel before opening preview');
       this.selectedNodeId = null;
       this.selectedConnectionId = null;
     }
@@ -1562,24 +1588,22 @@ export class AppComponent {
     
     // Collapse sidebar when preview opens
     this.sidebarCollapsed = true;
-    console.log('  - After: sidebarCollapsed =', this.sidebarCollapsed);
     
     // Start canvas width adjustment immediately (no properties panel open now)
     this.adjustCanvasForPropertiesPanel(false);
     
+    // Scale down node positions to fit the narrower preview canvas
+    this.scaleNodeLayout(0.5);
+    
     // Delay visual appearance to match canvas transition (0.3s)
     setTimeout(() => {
       this.showPreviewWorkflowVisual = true;
-      console.log('  - Visual preview workflow shown');
-    }, 300); // Match canvas transition duration
+    }, 300);
   }
 
   // Close preview workflow  
   closePreviewWorkflow(): void {
     console.log('🔴 CLOSING PREVIEW WORKFLOW');
-    console.log('  - Before: showPreviewWorkflow =', this.showPreviewWorkflow);
-    console.log('  - Before: sidebarCollapsed =', this.sidebarCollapsed);
-    console.log('  - selectedNodeId =', this.selectedNodeId);
     
     // Hide visual immediately
     this.showPreviewWorkflowVisual = false;
@@ -1589,13 +1613,53 @@ export class AppComponent {
     
     // Expand sidebar when preview closes
     this.sidebarCollapsed = false;
-    console.log('  - After: sidebarCollapsed =', this.sidebarCollapsed);
     
-    console.log('  - After: showPreviewWorkflow =', this.showPreviewWorkflow);
-    console.log('  - Calling adjustCanvasForPropertiesPanel with isPropertiesPanelOpen =', this.selectedNodeId !== null);
+    // Restore original node positions
+    this.restoreNodeLayout();
     
     // Restore canvas width using same logic as properties panel
     this.adjustCanvasForPropertiesPanel(this.selectedNodeId !== null);
+  }
+
+  /**
+   * Scale node positions by a factor, keeping the same relative layout.
+   * Scales distances from the top-left node so the shape stays anchored.
+   */
+  private scaleNodeLayout(scale: number): void {
+    if (this.canvasNodes.length === 0) return;
+
+    // Save original positions
+    this.savedNodePositions.clear();
+    for (const node of this.canvasNodes) {
+      this.savedNodePositions.set(node.id, { x: node.position.x, y: node.position.y });
+    }
+
+    // Find the top-left origin (min x, min y)
+    const minX = Math.min(...this.canvasNodes.map(n => n.position.x));
+    const minY = Math.min(...this.canvasNodes.map(n => n.position.y));
+
+    // Scale each node's offset from the origin
+    for (const node of this.canvasNodes) {
+      node.position.x = minX + (node.position.x - minX) * scale;
+      node.position.y = minY + (node.position.y - minY) * scale;
+    }
+  }
+
+  /**
+   * Restore original node positions after preview mode ends.
+   */
+  private restoreNodeLayout(): void {
+    if (this.savedNodePositions.size === 0) return;
+
+    for (const node of this.canvasNodes) {
+      const saved = this.savedNodePositions.get(node.id);
+      if (saved) {
+        node.position.x = saved.x;
+        node.position.y = saved.y;
+      }
+    }
+
+    this.savedNodePositions.clear();
   }
 
   // ===============================

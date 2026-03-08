@@ -68,7 +68,7 @@
               <div class="response-header">
                 <h4>Response:</h4>
               </div>
-              <p>{{ getMappedNodeResponse(message.executionResponse) }}</p>
+              <div class="markdown-body" [innerHTML]="renderMarkdown(getMappedNodeResponse(message.executionResponse))"></div>
             </div>
           </ng-template>
           

@@ -32,8 +32,8 @@ import { WorkflowNode } from '../../../models/workflow.models';
             [placeholder]="placeholder"
             [class.error]="hasError">
           </pol-input-text>
-          <div class="alias-preview" *ngIf="selectedNode!.alias && !hasError">
-            <small>Variables: <code>workflow.{{selectedNode!.alias}}.*</code></small>
+          <div class="alias-hint" *ngIf="selectedNode!.alias && !hasError">
+            <small>Use <code>workflow.{{selectedNode!.alias}}.*</code> to reference outputs</small>
           </div>
           <div class="alias-error" *ngIf="hasError">
             <small class="error-text">{{errorMessage}}</small>
@@ -44,24 +44,22 @@ import { WorkflowNode } from '../../../models/workflow.models';
   `,
   styles: [`
     .property-section.alias-section {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
-      border: 1px solid rgba(59, 130, 246, 0.1);
-      border-radius: 12px;
-      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 0;
     }
     
     .section-header {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
-      border-bottom: 1px solid rgba(59, 130, 246, 0.15);
-      padding: 12px 16px 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 16px 6px;
       
       h4 {
         margin: 0;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
-        color: #60a5fa;
+        color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 1.5px;
         position: relative;
@@ -75,14 +73,14 @@ import { WorkflowNode } from '../../../models/workflow.models';
           transform: translateY(-50%);
           width: 3px;
           height: 12px;
-          background: linear-gradient(180deg, #3b82f6, #06b6d4);
+          background: linear-gradient(180deg, #3b82f6, #8b5cf6);
           border-radius: 2px;
         }
       }
     }
     
     .section-content {
-      padding: 14px 16px 16px;
+      padding: 6px 14px 10px;
     }
 
     .form-group {
@@ -91,15 +89,15 @@ import { WorkflowNode } from '../../../models/workflow.models';
       label.form-label {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #e2e8f0;
+        gap: 6px;
+        margin-bottom: 1px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #a1aab5;
 
         pol-icon {
           color: #60a5fa;
-          font-size: 16px;
+          font-size: 14px;
         }
       }
 
@@ -108,36 +106,45 @@ import { WorkflowNode } from '../../../models/workflow.models';
         width: 100%;
       }
 
-      .alias-preview {
-        margin-top: 6px;
-        padding: 8px 10px;
-        background: rgba(34, 197, 94, 0.05);
-        border: 1px solid rgba(34, 197, 94, 0.2);
-        border-radius: 6px;
+      ::ng-deep {
+        .pol-input-text {
+          --base-border-width: 1px;
+          height: 34px;
+        }
+
+        .pol-input-text__input-element {
+          font-size: 14px;
+          height: 34px;
+          line-height: 34px;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+      }
+
+      .alias-hint {
+        margin-top: 4px;
 
         small {
-          font-size: 12px;
-          color: #10b981;
-          font-weight: 500;
+          font-size: 11px;
+          color: #64748b;
 
           code {
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
-            padding: 3px 6px;
-            border-radius: 4px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 11px;
-            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
           }
         }
       }
 
       .alias-error {
-        margin-top: 8px;
-        padding: 10px 12px;
+        margin-top: 6px;
+        padding: 8px 10px;
         background: rgba(239, 68, 68, 0.05);
         border: 1px solid rgba(239, 68, 68, 0.2);
-        border-radius: 8px;
+        border-radius: 6px;
 
         .error-text {
           font-size: 12px;

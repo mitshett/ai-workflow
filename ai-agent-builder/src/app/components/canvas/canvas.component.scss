@@ -60,6 +60,7 @@
     margin: 16px;
     border: 1px solid var(--control-border-weak-default);
     height: calc(100% - 32px);
+    cursor: grab;
 
     // Empty state styling
     .empty-state {
@@ -128,7 +129,7 @@
       cursor: grab !important; // Force grab cursor
       user-select: none;
       z-index: 10; // Above drop zone overlay
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 
       // Selection styling
       &.selected {
@@ -172,14 +173,14 @@
       .node-content {
         display: flex;
         align-items: center;
-        gap: var(--base-spacing-small);
-        padding: 12px 16px;
+        gap: 6px;
+        padding: 7px 10px;
         background: var(--control-bg-default);
         border: 1px solid var(--control-border-default);
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        min-width: 120px;
+        min-width: 80px;
         backdrop-filter: blur(8px);
         position: relative;
 
@@ -203,7 +204,7 @@
         }
 
         .node-label {
-          font-size: var(--base-font-size-p2);
+          font-size: 12px;
           font-weight: var(--base-font-weight-medium);
           color: var(--base-text-default);
           white-space: nowrap;
@@ -213,34 +214,34 @@
       // Connection handles - now at canvas-node level
       .connection-handle {
         position: absolute;
-        width: 14px;
-        height: 14px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         background: #3b82f6;
         border: 2px solid #ffffff;
         cursor: crosshair;
-        opacity: 0.9; // More visible
+        opacity: 0.9;
         scale: 1;
         transition: all 0.2s ease;
-        z-index: 25; // Higher than node content
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        z-index: 25;
+        box-shadow: 0 1px 4px rgba(59, 130, 246, 0.4);
         pointer-events: auto;
 
         &:hover {
           opacity: 1;
           scale: 1.3;
-          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.6);
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.6);
           background: #2563eb;
         }
 
         &.input-handle {
-          left: -7px; // Adjusted for new size
+          left: -5px;
           top: 50%;
           transform: translateY(-50%);
         }
 
         &.output-handle {
-          right: -7px; // Adjusted for new size
+          right: -5px;
           top: 50%;
           transform: translateY(-50%);
         }
@@ -248,26 +249,26 @@
 
       // Node type specific styling
       &[data-node-type="start"] .node-content {
-        border-left: 4px solid #22c55e;
+        border-left: 3px solid #22c55e;
       }
 
       &[data-node-type="agent"] .node-content {
-        border-left: 4px solid #3b82f6;
+        border-left: 3px solid #3b82f6;
       }
 
       &[data-node-type="end"] .node-content {
-        border-left: 4px solid #ef4444;
+        border-left: 3px solid #ef4444;
       }
 
       &[data-node-type="mcp"] .node-content {
-        border-left: 4px solid #8b5cf6;
+        border-left: 3px solid #8b5cf6;
       }
 
       &[data-node-type="if-else"],
       &[data-node-type="sequential"],
       &[data-node-type="parallel"] {
         .node-content {
-          border-left: 4px solid #06b6d4;
+          border-left: 3px solid #06b6d4;
         }
       }
     }
@@ -306,9 +307,83 @@
 // CANVAS VIEWPORT TRANSFORMS
 // ===============================
 
-// Canvas content wrapper
+// Canvas content wrapper - supports pan transform
 .canvas-content-wrapper {
   width: 100%;
   height: 100%;
   position: relative;
+  transform-origin: 0 0;
+}
+
+// Pan cursor state
+.canvas-content.panning {
+  cursor: grabbing !important;
+
+  .canvas-node {
+    pointer-events: none !important;
+    cursor: grabbing !important;
+  }
+
+  .connection-handle {
+    pointer-events: none !important;
+  }
+
+  .connection-line {
+    pointer-events: none !important;
+  }
+}
+
+// ===============================
+// PREVIEW MODE - read-only canvas with pan only
+// ===============================
+.canvas.preview-mode {
+  .canvas-content {
+    cursor: grab;
+
+    .canvas-node {
+      cursor: grab !important;
+      pointer-events: none; // Let mousedown pass through to canvas for panning
+
+      .node-content {
+        cursor: grab !important;
+
+        &:hover {
+          // Disable hover lift/glow effects in preview
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+          transform: none;
+          border-color: var(--control-border-default);
+        }
+      }
+
+      // No selection highlight in preview
+      &.selected .node-content {
+        border: 1px solid var(--control-border-default);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        transform: none;
+      }
+    }
+
+    .connection-line {
+      pointer-events: none;
+      cursor: grab;
+
+      &:hover {
+        stroke-width: 1.5 !important;
+        stroke: #9ca3af !important;
+      }
+    }
+  }
+
+  // Panning state in preview
+  .canvas-content.panning {
+    cursor: grabbing !important;
+    
+    .canvas-node {
+      cursor: grabbing !important;
+
+      .node-content {
+        cursor: grabbing !important;
+      }
+    }
+  }
 }

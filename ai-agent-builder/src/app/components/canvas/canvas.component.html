@@ -1,8 +1,9 @@
 <!-- Main Canvas Area -->
-<main class="canvas">
+<main class="canvas" [class.preview-mode]="previewMode">
 
   <!-- Invisible drop zone overlay for sidebar drops only -->
   <div class="drop-zone-overlay"
+       *ngIf="!previewMode"
        cdkDropList
        id="canvas-drop-zone"
        [cdkDropListData]="[]"
@@ -15,7 +16,7 @@
   </div>
 
   <!-- Canvas content - separate from drop zone -->
-  <div class="canvas-content" #canvasContainer (click)="onDeselectAll($event)">
+  <div class="canvas-content" #canvasContainer (click)="onDeselectAll($event)" (mousedown)="onPanStart($event)">
     <!-- Canvas content wrapper for viewport transforms -->
     <div class="canvas-content-wrapper" #canvasContent>
     <!-- Empty state when no nodes -->
@@ -68,16 +69,18 @@
          [style.top.px]="node.position.y"
          [attr.data-node-type]="node.type"
          [attr.data-node-id]="node.id"
+         [cdkDragDisabled]="previewMode"
          cdkDrag
          [cdkDragData]="node"
          [cdkDragBoundary]="canvasContainer"
          [cdkDragConstrainPosition]="constrainPosition"
          (cdkDragEnded)="onNodeDragEnd($event, node)"
          (cdkDragStarted)="onNodeDragStart($event, node)"
+         (cdkDragMoved)="onNodeDragMoved()"
          (click)="selectNode(node.id, $event)">
-      <!-- Connection handles - OUTSIDE drag handle to prevent event interference -->
+      <!-- Connection handles - hidden in preview mode -->
       <!-- Input Handle (left side) -->
-      <div *ngIf="node.type !== 'start'"
+      <div *ngIf="node.type !== 'start' && !previewMode"
            class="connection-handle input-handle"
            [attr.data-node-id]="node.id"
            [attr.data-handle-type]="'input'"
@@ -85,7 +88,7 @@
       </div>
 
       <!-- Output Handle (right side) -->
-      <div *ngIf="node.type !== 'end'"
+      <div *ngIf="node.type !== 'end' && !previewMode"
            class="connection-handle output-handle"
            [attr.data-node-id]="node.id"
            [attr.data-handle-type]="'output'"
@@ -95,7 +98,7 @@
       <div class="node-content" [ngClass]="node.type + '-node'"
            cdkDragHandle>
         <div class="node-main-content">
-          <pol-icon [iconName]="getIconName(node.icon)" size="medium"></pol-icon>
+          <pol-icon [iconName]="getIconName(node.icon)" size="small"></pol-icon>
           <span class="node-label">{{ node.label }}</span>
         </div>
       </div>

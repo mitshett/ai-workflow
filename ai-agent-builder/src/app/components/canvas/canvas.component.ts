@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, OnChanges, SimpleChanges, Renderer2, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, OnChanges, SimpleChanges, Renderer2, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { IconComponent } from '@polarity/components/icon';
@@ -15,14 +15,27 @@ import { WorkflowNode, NodeType, WorkflowConnection } from '../../models/workflo
   templateUrl: './canvas.component.html',
   styleUrl: './canvas.component.scss'
 })
-export class CanvasComponent implements OnChanges {
+export class CanvasComponent implements OnChanges, OnDestroy {
   
   @ViewChild('canvasContainer', { static: false }) canvasContainer!: ElementRef;
   @ViewChild('canvasContent', { static: false }) canvasContent!: ElementRef;
   
   private resizeTimeout: any;
+
+  // Pan state
+  private isPanning = false;
+  private wasPanning = false;
+  private panStartX = 0;
+  private panStartY = 0;
+  panOffsetX = 0;
+  panOffsetY = 0;
+  private boundOnPanMove: (e: MouseEvent) => void;
+  private boundOnPanEnd: (e: MouseEvent) => void;
   
-  constructor(private el: ElementRef, private renderer: Renderer2) {}
+  constructor(private el: ElementRef, private renderer: Renderer2) {
+    this.boundOnPanMove = this.onPanMove.bind(this);
+    this.boundOnPanEnd = this.onPanEnd.bind(this);
+  }
   
   ngOnChanges(changes: SimpleChanges): void {
     // Canvas width is controlled by CSS custom property --canvas-computed-width
@@ -40,6 +53,7 @@ export class CanvasComponent implements OnChanges {
   @Input() selectedConnectionId: string | null = null;
   @Input() isCanvasNodeDragging = false;
   @Input() isDragging = false;
+  @Input() previewMode = false;
   
   // Canvas dimensions
   @Input() canvasWidth = 2000;
@@ -68,6 +82,7 @@ export class CanvasComponent implements OnChanges {
   
   // Node selection
   selectNode(nodeId: string, event?: MouseEvent): void {
+    if (this.previewMode) return;
     if (event) {
       event.stopPropagation();
     }
@@ -78,6 +93,7 @@ export class CanvasComponent implements OnChanges {
   
   // Connection selection
   selectConnection(connectionId: string, event?: MouseEvent): void {
+    if (this.previewMode) return;
     if (event) {
       event.stopPropagation();
     }
@@ -88,6 +104,11 @@ export class CanvasComponent implements OnChanges {
   onDeselectAll(event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
+    }
+    // Don't deselect if user was panning
+    if (this.wasPanning) {
+      this.wasPanning = false;
+      return;
     }
     this.deselectAll.emit();
   }
@@ -100,6 +121,9 @@ export class CanvasComponent implements OnChanges {
   onNodeDragEnd(event: any, node: WorkflowNode): void {
     this.nodeDragEnd.emit({ event, node });
   }
+
+  // Triggers change detection so connection paths update during drag
+  onNodeDragMoved(): void {}
   
   // Get icon name with proper typing
   getIconName(iconName: string): any {
@@ -142,6 +166,7 @@ export class CanvasComponent implements OnChanges {
   
   // Start connection from a node handle
   startConnection(event: MouseEvent, nodeId: string, handleType: 'input' | 'output'): void {
+    if (this.previewMode) return;
     event.preventDefault();
     event.stopPropagation();
 
@@ -163,16 +188,17 @@ export class CanvasComponent implements OnChanges {
   private onConnectionDrag(event: MouseEvent): void {
     if (!this.isConnecting || !this.connectingFrom) return;
 
-    const canvasContentRect = document.querySelector('.canvas-content')?.getBoundingClientRect();
-    if (!canvasContentRect) return;
+    const wrapperElement = document.querySelector('.canvas-content-wrapper');
+    if (!wrapperElement) return;
 
     const fromNode = this.canvasNodes.find(n => n.id === this.connectingFrom!.nodeId);
     if (!fromNode) return;
 
     const fromPoint = this.getHandlePosition(fromNode, this.connectingFrom.handleType);
+    const wrapperRect = wrapperElement.getBoundingClientRect();
     const toPoint = {
-      x: event.clientX - canvasContentRect.left,
-      y: event.clientY - canvasContentRect.top
+      x: event.clientX - wrapperRect.left,
+      y: event.clientY - wrapperRect.top
     };
 
     const tempConnection = {
@@ -258,44 +284,32 @@ export class CanvasComponent implements OnChanges {
   }
 
   getHandlePosition(node: WorkflowNode, handleType: 'input' | 'output'): { x: number; y: number } {
-    // Find the actual DOM element for this node
-    const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`);
-    if (!nodeElement) {
-      // Fallback to model position if element not found
-      const nodeWidth = 120;
-      const nodeHeight = 50;
-      return {
-        x: node.position.x + (handleType === 'output' ? nodeWidth : 0),
-        y: node.position.y + nodeHeight / 2
-      };
+    const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`) as HTMLElement;
+    const nodeWidth = nodeElement ? nodeElement.offsetWidth : 90;
+    const nodeHeight = nodeElement ? nodeElement.offsetHeight : 36;
+
+    // During drag, use DOM positions so lines follow the dragged node
+    if (this.isCanvasNodeDragging && nodeElement) {
+      const wrapperElement = document.querySelector('.canvas-content-wrapper');
+      if (wrapperElement) {
+        const wrapperRect = wrapperElement.getBoundingClientRect();
+        const nodeRect = nodeElement.getBoundingClientRect();
+        return {
+          x: nodeRect.left - wrapperRect.left + (handleType === 'output' ? nodeRect.width : 0),
+          y: nodeRect.top - wrapperRect.top + nodeRect.height / 2
+        };
+      }
     }
 
-    const canvasContentElement = document.querySelector('.canvas-content');
-    if (!canvasContentElement) {
-      // Fallback if canvas content not found
-      const nodeWidth = 120;
-      const nodeHeight = 50;
-      return {
-        x: node.position.x + (handleType === 'output' ? nodeWidth : 0),
-        y: node.position.y + nodeHeight / 2
-      };
-    }
-
-    // Calculate position based on actual DOM element position relative to canvas-content
-    const canvasContentRect = canvasContentElement.getBoundingClientRect();
-    const nodeRect = nodeElement.getBoundingClientRect();
-
-    const relativeX = nodeRect.left - canvasContentRect.left;
-    const relativeY = nodeRect.top - canvasContentRect.top;
-
+    // Static: calculate from model position (always in sync, no repaint dependency)
     return {
-      x: relativeX + (handleType === 'output' ? nodeRect.width : 0),
-      y: relativeY + nodeRect.height / 2
+      x: node.position.x + (handleType === 'output' ? nodeWidth : 0),
+      y: node.position.y + nodeHeight / 2
     };
   }
 
   private createBezierPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
-    const controlPointOffset = Math.abs(to.x - from.x) * 0.5;
+    const controlPointOffset = Math.max(50, Math.abs(to.x - from.x) * 0.5);
 
     const cp1x = from.x + controlPointOffset;
     const cp1y = from.y;
@@ -317,5 +331,71 @@ export class CanvasComponent implements OnChanges {
       // Just log for now - no zoom adjustments
       console.log('Canvas window resized');
     }, 150);
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('mousemove', this.boundOnPanMove);
+    document.removeEventListener('mouseup', this.boundOnPanEnd);
+  }
+
+  // ==================== CANVAS PANNING ====================
+
+  onPanStart(event: MouseEvent): void {
+    // In preview mode: pan from anywhere (including over nodes)
+    // In normal mode: only pan from canvas background (not on nodes/handles/connections)
+    if (!this.previewMode) {
+      const target = event.target as HTMLElement;
+      if (target.closest('.canvas-node') || target.closest('.connection-handle') || target.closest('.connection-line')) {
+        return;
+      }
+    }
+    // Only left mouse button
+    if (event.button !== 0) return;
+
+    this.isPanning = true;
+    this.wasPanning = false;
+    this.panStartX = event.clientX - this.panOffsetX;
+    this.panStartY = event.clientY - this.panOffsetY;
+
+    // Add panning class for cursor feedback
+    const canvasContent = this.canvasContainer?.nativeElement;
+    if (canvasContent) {
+      canvasContent.classList.add('panning');
+    }
+
+    document.addEventListener('mousemove', this.boundOnPanMove);
+    document.addEventListener('mouseup', this.boundOnPanEnd);
+  }
+
+  private onPanMove(event: MouseEvent): void {
+    if (!this.isPanning) return;
+    event.preventDefault();
+
+    this.panOffsetX = event.clientX - this.panStartX;
+    this.panOffsetY = event.clientY - this.panStartY;
+    this.wasPanning = true;
+
+    this.applyPanTransform();
+  }
+
+  private onPanEnd(event: MouseEvent): void {
+    if (!this.isPanning) return;
+    this.isPanning = false;
+
+    const canvasContent = this.canvasContainer?.nativeElement;
+    if (canvasContent) {
+      canvasContent.classList.remove('panning');
+    }
+
+    document.removeEventListener('mousemove', this.boundOnPanMove);
+    document.removeEventListener('mouseup', this.boundOnPanEnd);
+    // wasPanning stays true until the next click event fires onDeselectAll
+  }
+
+  private applyPanTransform(): void {
+    const wrapper = this.canvasContent?.nativeElement;
+    if (wrapper) {
+      wrapper.style.transform = `translate(${this.panOffsetX}px, ${this.panOffsetY}px)`;
+    }
   }
 }
