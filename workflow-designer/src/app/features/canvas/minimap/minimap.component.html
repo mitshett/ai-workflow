@@ -1,0 +1,44 @@
+<svg
+  class="minimap-svg"
+  [attr.width]="MM_W"
+  [attr.height]="MM_H"
+  [attr.viewBox]="'0 0 ' + MM_W + ' ' + MM_H"
+  (mousedown)="onMouseDown($event)"
+>
+  <defs>
+    <clipPath id="minimap-clip">
+      <rect x="0" y="0" [attr.width]="MM_W" [attr.height]="MM_H" rx="4" />
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" [attr.width]="MM_W" [attr.height]="MM_H"
+    class="minimap-bg" rx="4" />
+
+  <g clip-path="url(#minimap-clip)">
+    <!-- Node rects -->
+    @for (n of miniNodes(); track $index) {
+      <rect
+        [attr.x]="n.x"
+        [attr.y]="n.y"
+        [attr.width]="n.w"
+        [attr.height]="n.h"
+        [attr.fill]="n.color"
+        [class.minimap-node--selected]="n.selected"
+        class="minimap-node"
+        rx="2"
+      />
+    }
+
+    <!-- Viewport rect -->
+    @let vr = viewportRect();
+    <rect
+      [attr.x]="vr.x"
+      [attr.y]="vr.y"
+      [attr.width]="vr.w"
+      [attr.height]="vr.h"
+      class="minimap-viewport"
+      rx="2"
+    />
+  </g>
+</svg>

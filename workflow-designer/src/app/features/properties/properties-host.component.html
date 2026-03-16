@@ -1,0 +1,124 @@
+<!-- ── Node panel ────────────────────────────────────────────────────────────── -->
+@if (store.selectedNode(); as node) {
+  <div class="props-panel">
+
+    <!-- Header -->
+    <div class="props-header">
+      <div class="props-header__text">
+        <span class="props-header__label">{{ node.label }}</span>
+      </div>
+      <div class="expand-dropdown" #expandDropdown>
+        <button class="expand-trigger"
+          [class.expand-trigger--active]="store.rightPanelExpanded()"
+          [attr.aria-expanded]="expandMenuOpen()"
+          aria-haspopup="true"
+          aria-label="Panel layout options"
+          (click)="expandMenuOpen.set(!expandMenuOpen())"
+        >
+          <pol-icon [iconName]="$any('arrows-out')" [size]="'small'" [decorative]="true" />
+          <pol-icon [iconName]="$any('caret-down')" [size]="'small'" [decorative]="true" class="expand-trigger__caret" />
+        </button>
+        @if (expandMenuOpen()) {
+          <div class="expand-menu" role="menu">
+            <button class="expand-menu__item"
+              role="menuitem"
+              [class.expand-menu__item--active]="store.rightPanelExpanded() === 'docked'"
+              (click)="onSelectExpandMode('docked')"
+            >
+              <pol-icon [iconName]="$any('sidebar-simple')" [size]="'small'" [decorative]="true" />
+              Docked
+            </button>
+            <button class="expand-menu__item"
+              role="menuitem"
+              [class.expand-menu__item--active]="store.rightPanelExpanded() === 'fullscreen'"
+              (click)="onSelectExpandMode('fullscreen')"
+            >
+              <pol-icon [iconName]="$any('arrows-out')" [size]="'small'" [decorative]="true" />
+              Full screen
+            </button>
+          </div>
+        }
+      </div>
+      <button class="props-close-btn" (click)="closePanel()" aria-label="Close properties panel">
+        <pol-icon [iconName]="$any('x')" [size]="'small'" [decorative]="true" />
+      </button>
+    </div>
+
+    <!-- Tabs bar -->
+    <pol-tabs
+      [tabs]="nodeTabs()"
+      [selectedTab]="selectedTab()"
+      (selectedTabChange)="onTabChange($event)"
+    />
+
+    <!-- Tab content -->
+    <div class="props-body">
+
+      @if (selectedTab() === 0) {
+        <app-node-info [node]="node" />
+      }
+
+      @if (selectedTab() === 1) {
+        @switch (node.type) {
+          @case ('start') {
+            <app-start-props [node]="node" />
+          }
+          @case ('end') {
+            <app-end-props [node]="node" />
+          }
+          @case ('agent') {
+            <app-agent-props [node]="node" />
+          }
+          @case ('mcp_tool') {
+            <app-mcp-props [node]="node" />
+          }
+          @case ('gateway') {
+            <app-gateway-props [node]="node" />
+          }
+          @case ('approval') {
+            <app-approval-props [node]="node" />
+          }
+          @case ('rest_client') {
+            <app-rest-client-props [node]="node" />
+          }
+        }
+      }
+
+      @if (selectedTab() === 2 && node.type === 'start') {
+        <app-start-fields [node]="node" />
+      }
+
+    </div>
+
+  </div>
+}
+
+<!-- ── Edge panel ────────────────────────────────────────────────────────────── -->
+@if (store.selectedEdge(); as edge) {
+  <div class="props-panel">
+
+    <!-- Header -->
+    <div class="props-header">
+      <div class="props-header__icon props-header__icon--edge">
+        <pol-icon [iconName]="$any('arrow-right')" [size]="'medium'" [decorative]="true" />
+      </div>
+      <div class="props-header__text">
+        <span class="props-header__label">Edge</span>
+        <span class="props-header__type">Connection</span>
+      </div>
+      <button class="props-close-btn" (click)="closePanel()" aria-label="Close properties panel">
+        <pol-icon [iconName]="$any('x')" [size]="'small'" [decorative]="true" />
+      </button>
+    </div>
+
+    <pol-tabs
+      [tabs]="edgeTabs"
+      [selectedTab]="0"
+    />
+
+    <div class="props-body">
+      <app-edge-props [edge]="edge" />
+    </div>
+
+  </div>
+}

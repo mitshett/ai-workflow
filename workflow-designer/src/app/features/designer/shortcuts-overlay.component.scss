@@ -1,0 +1,67 @@
+// All backdrop/panel/animation styling is handled by pol-modal.
+// This file only contains layout styles for the shortcut content inside the modal body.
+
+// ── Body ──────────────────────────────────────────────────────────────────
+
+.shortcuts-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Group ─────────────────────────────────────────────────────────────────
+
+.shortcuts-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--pol-color-neutral-400);
+    margin-bottom: 2px;
+  }
+}
+
+// ── Row ───────────────────────────────────────────────────────────────────
+
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+
+  &__label {
+    font-size: 13px;
+    color: var(--pol-color-gray-700);
+  }
+
+  &__keys {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.shortcuts-sep {
+  font-size: 10px;
+  color: var(--pol-color-neutral-400);
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────
+
+.shortcuts-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+// ── Dark theme ────────────────────────────────────────────────────────────
+
+.magnetic-dark {
+  .shortcuts-row__label {
+    color: var(--pol-color-gray-300);
+  }
+}

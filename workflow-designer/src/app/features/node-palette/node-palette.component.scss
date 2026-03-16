@@ -1,0 +1,225 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--base-bg-default);
+  transition: background var(--wd-transition-speed) ease;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────
+
+.palette-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--base-border-weak-default);
+
+  &__collapse-btn {
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--base-text-default);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ── Search ────────────────────────────────────────────────────────────────
+
+.palette-search {
+  padding: 6px 8px 4px;
+  flex-shrink: 0;
+}
+
+// ── Scrollable node list ──────────────────────────────────────────────────
+
+.palette-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 4px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Category label ────────────────────────────────────────────────────────
+
+.palette-category-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--base-text-weak-default);
+  padding: 10px 8px 2px;
+
+  &:first-child {
+    padding-top: 6px;
+  }
+}
+
+// ── Compact node row ──────────────────────────────────────────────────────
+
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 8px;
+  height: auto;
+  min-height: 52px;
+  border: none;
+  border-radius: var(--base-border-radius-s, 6px);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease;
+  color: inherit;
+
+  &:hover {
+    background: var(--control-bg-weak-hover, rgba(0,0,0,0.05));
+
+    .palette-row__add {
+      opacity: 1;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--control-border-focus);
+    outline-offset: -2px;
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: color-mix(in srgb, currentColor 20%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+    flex-shrink: 0;
+
+    pol-icon {
+      color: inherit;
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--base-text-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  &__desc {
+    font-size: 11px;
+    color: var(--base-text-weak-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  &__add {
+    opacity: 0;
+    color: var(--base-text-weak-default);
+    flex-shrink: 0;
+    transition: opacity 120ms ease;
+  }
+}
+
+// In dark mode, boost the bubble opacity slightly for richer color
+:host-context(.magnetic-dark) {
+  .palette-row__icon {
+    background: color-mix(in srgb, currentColor 35%, transparent);
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────
+
+.palette-empty {
+  padding: 24px 8px;
+  display: flex;
+  justify-content: center;
+}
+
+// ── Collapsed icon-only list ──────────────────────────────────────────────
+
+.palette-collapsed-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+// ── Collapsed colored bubble chip ─────────────────────────────────────────
+
+.palette-collapsed-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  background: color-mix(in srgb, currentColor 20%, transparent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 120ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--control-border-focus);
+    outline-offset: 1px;
+  }
+}
+
+:host-context(.magnetic-dark) {
+  .palette-collapsed-chip {
+    background: color-mix(in srgb, currentColor 35%, transparent);
+
+    &:hover {
+      background: color-mix(in srgb, currentColor 45%, transparent);
+    }
+  }
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

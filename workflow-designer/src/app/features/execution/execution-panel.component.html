@@ -1,0 +1,373 @@
+<!-- ── Panel header ────────────────────────────────────────────────────── -->
+<div class="exec-header">
+  <span class="exec-header__title">AI Assistant</span>
+
+  <div class="expand-dropdown" #expandDropdown>
+    <button class="expand-trigger"
+      [class.expand-trigger--active]="store.rightPanelExpanded()"
+      [attr.aria-expanded]="expandMenuOpen()"
+      aria-haspopup="true"
+      aria-label="Panel layout options"
+      (click)="expandMenuOpen.set(!expandMenuOpen())"
+    >
+      <pol-icon [iconName]="$any('arrows-out')" [size]="'small'" [decorative]="true" />
+      <pol-icon [iconName]="$any('caret-down')" [size]="'small'" [decorative]="true" class="expand-trigger__caret" />
+    </button>
+    @if (expandMenuOpen()) {
+      <div class="expand-menu" role="menu">
+        <button class="expand-menu__item"
+          role="menuitem"
+          [class.expand-menu__item--active]="store.rightPanelExpanded() === 'docked'"
+          (click)="onSelectExpandMode('docked')"
+        >
+          <pol-icon [iconName]="$any('sidebar-simple')" [size]="'small'" [decorative]="true" />
+          Docked
+        </button>
+        <button class="expand-menu__item"
+          role="menuitem"
+          [class.expand-menu__item--active]="store.rightPanelExpanded() === 'fullscreen'"
+          (click)="onSelectExpandMode('fullscreen')"
+        >
+          <pol-icon [iconName]="$any('arrows-out')" [size]="'small'" [decorative]="true" />
+          Full screen
+        </button>
+      </div>
+    }
+  </div>
+
+  <button
+    pol-button
+    [variant]="'tertiary'"
+    [size]="'small'"
+    [iconOnly]="true"
+    [ariaLabel]="'Close execution panel'"
+    (click)="onClose()"
+  >
+    <pol-icon iconName="x" size="small" [decorative]="true" />
+  </button>
+</div>
+
+<!-- ── Scrollable area ───────────────────────────────────────────────────── -->
+@if (executionState() !== 'idle') {
+<div class="exec-chat__scroll">
+
+  <!-- ── Assistant greeting / collecting form ───────────────────────────── -->
+  @if (isCollecting()) {
+    <div class="exec-chat__turn">
+      <pol-icon iconName="lens-logo" size="small" [decorative]="true" />
+      <div class="exec-chat__turn-body">
+        @if (runFields().length > 0) {
+          <p class="exec-chat__turn-text">
+            Hi! I need a few details before running this workflow.
+          </p>
+          <div class="exec-chat__form">
+            @for (field of runFields(); track field.id) {
+              <pol-form-field>
+                <label pol-label>
+                  {{ field.label || field.key }}
+                  @if (field.required) {
+                    <span class="exec-chat__required">*</span>
+                  }
+                </label>
+                @switch (field.type) {
+                  @case ('text') {
+                    <pol-input-text
+                      [value]="getStringValue(field.key)"
+                      [placeholder]="field.placeholder || ''"
+                      (valueChange)="setValue(field.key, $event)"
+                    />
+                  }
+                  @case ('number') {
+                    <pol-input-number
+                      [value]="getNumberValue(field.key)"
+                      [placeholder]="field.placeholder || ''"
+                      (valueChange)="setValue(field.key, $event)"
+                    />
+                  }
+                  @case ('boolean') {
+                    <pol-toggle
+                      [checked]="getBooleanValue(field.key)"
+                      (checkedChange)="setValue(field.key, $event)"
+                    />
+                  }
+                  @case ('dropdown') {
+                    <pol-select
+                      [options]="getDropdownOptions(field)"
+                      [value]="getStringValue(field.key)"
+                      [placeholder]="field.placeholder || 'Select…'"
+                      (selectionChange)="setValue(field.key, $event)"
+                    />
+                  }
+                  @case ('textarea') {
+                    <textarea
+                      pol-textarea
+                      [value]="getStringValue(field.key)"
+                      [placeholder]="field.placeholder || ''"
+                      (input)="onTextareaInput(field.key, $event)"
+                      rows="3"
+                    ></textarea>
+                  }
+                }
+                @if (field.description) {
+                  <div class="exec-chat__description">{{ field.description }}</div>
+                }
+              </pol-form-field>
+            }
+          </div>
+          @if (validationError()) {
+            <div class="exec-chat__error">{{ validationError() }}</div>
+          }
+          <div class="exec-chat__actions">
+            <button pol-button variant="primary" size="small" (click)="onSubmit()">
+              <pol-icon iconName="play" size="xsmall" [decorative]="true" />
+              Run Workflow
+            </button>
+          </div>
+        } @else {
+          <p class="exec-chat__turn-text">
+            No input fields required. Ready to run!
+          </p>
+          <div class="exec-chat__actions">
+            <button pol-button variant="primary" size="small" (click)="onSubmit()">
+              <pol-icon iconName="play" size="xsmall" [decorative]="true" />
+              Run Workflow
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <!-- ── Post-submit: "Got it!" row ──────────────────────────────────── -->
+    <div class="exec-chat__turn">
+      <pol-icon iconName="lens-logo" size="small" [decorative]="true" />
+      <div class="exec-chat__turn-body">
+        @if (submittedValueEntries().length > 0) {
+          <p class="exec-chat__turn-text">Got it! Starting the workflow with your inputs.</p>
+        } @else {
+          <p class="exec-chat__turn-text">Got it! Starting the workflow.</p>
+        }
+        @if (activeRunId()) {
+          <p class="exec-chat__turn-text">Run {{ activeRunId() }}</p>
+        }
+      </div>
+    </div>
+
+    <!-- ── User submitted inputs ─────────────────────────────────────── -->
+    @if (submittedValueEntries().length > 0) {
+      <div class="exec-chat__turn exec-chat__turn--user">
+        <div class="exec-chat__user-avatar exec-chat__user-avatar--sm">
+          <pol-icon iconName="user-circle" size="xsmall" [decorative]="true" />
+        </div>
+        <div class="exec-chat__summary">
+          @for (entry of submittedValueEntries(); track entry.label) {
+            <div class="exec-chat__row">
+              <span class="exec-chat__key">{{ entry.label }}</span>
+              <span class="exec-chat__value">{{ entry.value }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── Approval banner ──────────────────────────────────────────── -->
+    @if (executionState() === 'paused_approval' && pendingApprovalNodeId()) {
+      <div class="exec-approval-banner">
+        <pol-icon [iconName]="'user-check'" size="small" [decorative]="true" />
+        <div class="exec-approval-banner__text">
+          <span class="exec-approval-banner__heading">Approval required</span>
+          <span class="exec-approval-banner__sub">A node is waiting for human approval to continue.</span>
+        </div>
+        <button pol-button [variant]="'primary'" [size]="'small'"
+          (click)="onApprove(pendingApprovalNodeId()!)">
+          Approve
+        </button>
+      </div>
+    }
+
+    <!-- ── Node timeline ────────────────────────────────────────────── -->
+    <p class="exec-chat__section-title">Workflow Execution Details</p>
+
+    @if (nodeRows().length === 0) {
+      <div class="exec-empty">
+        <pol-empty-state
+          [illustration]="'info'"
+          [header]="'No nodes'"
+          [message]="'Add nodes to the canvas and run the workflow.'"
+        />
+      </div>
+    } @else {
+      <div class="exec-timeline">
+        @for (row of nodeRows(); track row.id; let last = $last) {
+
+          <!-- Timeline entry -->
+          <div class="exec-entry" [class.exec-entry--approval]="row.isPendingApproval">
+
+            <!-- Left: connector track -->
+            <div class="exec-entry__track">
+              <div class="exec-entry__dot"
+                [class.exec-entry__dot--success]="row.status === 'success'"
+                [class.exec-entry__dot--failed]="row.status === 'failed' || row.status === 'timeout'"
+                [class.exec-entry__dot--running]="row.status === 'in_progress'"
+              >
+                @if (row.status === 'in_progress') {
+                  <pol-spinner [size]="'small'" [ariaLabel]="'Running'" />
+                } @else {
+                  <div class="exec-entry__dot-inner"></div>
+                }
+              </div>
+              @if (!last) {
+                <div class="exec-entry__line"></div>
+              }
+            </div>
+
+            <!-- Right: content -->
+            <div class="exec-entry__content">
+
+              <!-- Row header — clickable to expand -->
+              <div class="exec-entry__row"
+                (click)="toggleExpand(row.id)"
+                [class.exec-entry__row--expandable]="row.outputVars.length > 0 || !!row.error"
+              >
+                <!-- Type icon chip -->
+                <div class="exec-entry__icon" [style.background]="row.typeColor">
+                  <pol-icon
+                    [iconName]="$any(row.icon)"
+                    size="small"
+                    [decorative]="true"
+                    [style.--interact-icon-weak-default]="'#fff'"
+                    [style.--interact-icon-default]="'#fff'"
+                  />
+                </div>
+
+                <!-- Label + alias + timing -->
+                <div class="exec-entry__info">
+                  <span class="exec-entry__label">{{ row.label }}</span>
+                  <div class="exec-entry__meta">
+                    <span class="exec-entry__alias">{{ row.alias }}</span>
+                    @if (row.durationMs != null) {
+                      <span class="exec-entry__duration">{{ row.durationMs }}ms</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Status icon only -->
+                <div class="exec-entry__right">
+                  @if (row.statusConfig.spinning) {
+                    <pol-spinner size="small" [ariaLabel]="'Running'" />
+                  } @else {
+                    <pol-badge
+                      [variant]="'status'"
+                      [status]="row.statusConfig.badgeStatus"
+                      size="small"
+                    />
+                  }
+                  @if (row.outputVars.length > 0 || !!row.error) {
+                    <pol-icon
+                      [iconName]="isExpanded(row.id) ? 'caret-up' : 'caret-down'"
+                      size="xsmall"
+                      [decorative]="true"
+                      class="exec-entry__chevron"
+                    />
+                  }
+                </div>
+              </div>
+
+              <!-- Expandable output panel -->
+              @if (isExpanded(row.id)) {
+                <div class="exec-entry__output">
+
+                  @if (row.error) {
+                    <div class="exec-entry__error">
+                      <pol-icon [iconName]="'warning'" size="xsmall" [decorative]="true" />
+                      <span>{{ row.error }}</span>
+                    </div>
+                  }
+
+                  @if (row.outputVars.length > 0) {
+                    <div class="exec-entry__vars">
+                      @for (v of row.outputVars; track v.key) {
+                        <div class="exec-entry__var">
+                          <span class="exec-entry__var-key">{{ v.key }}</span>
+                          <span class="exec-entry__var-value">{{ v.value }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (!row.error && row.outputVars.length === 0) {
+                    <span class="exec-entry__no-output">No output data</span>
+                  }
+
+                </div>
+              }
+
+            </div>
+          </div>
+
+        }
+      </div>
+    }
+
+    <!-- ── Workflow Output ──────────────────────────────────────────── -->
+    @if (isTerminal() && workflowOutput() !== null) {
+      <div class="exec-output">
+        <div class="exec-output__header">
+          <span class="exec-output__title">Workflow Output</span>
+          <button
+            pol-button
+            [variant]="'tertiary'"
+            [size]="'small'"
+            [iconOnly]="true"
+            [ariaLabel]="'Copy output'"
+            (click)="copyOutput()"
+          >
+            <pol-icon [iconName]="'copy'" size="small" [decorative]="true" />
+          </button>
+        </div>
+        <div class="exec-output__content" [innerHTML]="renderedOutput()"></div>
+      </div>
+    }
+
+    <!-- ── Chat Q&A turns (terminal only) ───────────────────────────── -->
+    @if (isTerminal()) {
+      @for (msg of chatHistory(); track $index) {
+        @if (msg.role === 'assistant') {
+          <div class="exec-chat__turn">
+            <pol-icon iconName="lens-logo" size="small" [decorative]="true" />
+            <p class="exec-chat__turn-text">{{ msg.content }}</p>
+          </div>
+        } @else {
+          <div class="exec-chat__turn exec-chat__turn--user">
+            <div class="exec-chat__user-avatar exec-chat__user-avatar--sm">
+              <pol-icon iconName="user-circle" size="xsmall" [decorative]="true" />
+            </div>
+            <p class="exec-chat__turn-text">{{ msg.content }}</p>
+          </div>
+        }
+      }
+
+      @if (isChatLoading()) {
+        <div class="exec-chat__turn">
+          <pol-icon iconName="lens-logo" size="small" [decorative]="true" />
+          <pol-spinner size="small" ariaLabel="Thinking..." />
+        </div>
+      }
+
+      @if (chatError()) {
+        <div class="exec-chat__error">{{ chatError() }}</div>
+      }
+    }
+  }
+</div>
+
+  <!-- ── Chat input field (pinned at bottom, terminal only) ──────────── -->
+  @if (isTerminal()) {
+    <div class="exec-chat__input-wrap">
+      <pol-ai-input-field
+        placeholder="Ask about this workflow run..."
+        [generating]="isChatLoading()"
+        (send)="sendChatMessage($event)"
+      />
+    </div>
+  }
+}

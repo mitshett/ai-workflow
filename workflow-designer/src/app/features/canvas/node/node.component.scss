@@ -1,0 +1,247 @@
+// ── Host — absolutely positioned on the canvas ────────────────────────────
+
+:host {
+  position: absolute;
+  width: 180px;
+  cursor: default;
+  z-index: 1;
+  overflow: visible;
+}
+
+:host(.wd-node-selected) {
+  z-index: 10;
+}
+
+:host(.wd-node-dragging) {
+  z-index: 20;
+  cursor: grabbing;
+
+  // Suppress Polarity card's pointer-events-based hover during drag
+  pointer-events: none;
+}
+
+:host(.wd-node-running) {
+  animation: node-pulse 1.6s ease-in-out infinite;
+  // Ensure outline is not clipped — host needs position: absolute (already set)
+  overflow: visible;
+}
+
+@keyframes node-pulse {
+  0%, 100% { outline: 2px solid transparent; outline-offset: 0; }
+  50%       { outline: 2px solid var(--magnetic-color-blue-55); outline-offset: 3px; }
+}
+
+// ── Strip pol-card's default padding — we manage all spacing ──────────────
+
+::ng-deep pol-card .pol-card {
+  padding: 0;
+}
+
+// ── Type topbar — flush against card's top border, divider below ──────────
+
+.node-topbar {
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--base-border-default);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &:active { cursor: grabbing; }
+}
+
+// pol-tag is ViewEncapsulation.None — override scoped via host element
+:host ::ng-deep .node-topbar .pol-tag {
+  background: transparent;
+  color: var(--base-text-weak-default);
+}
+
+// ── Drag handle — the header row ──────────────────────────────────────────
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  &__label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--base-text-default);
+  }
+}
+
+// ── Node body ─────────────────────────────────────────────────────────────
+
+.node-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 8px;
+  gap: 2px;
+  min-height: 24px;
+
+  &__alias {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--base-text-weak-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  &__description {
+    font-size: 10px;
+    color: var(--base-text-weak-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// ── Port handles ──────────────────────────────────────────────────────────
+
+.node-port {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--base-bg-weak-default);
+  border: 2px solid var(--base-border-default);
+  cursor: crosshair;
+  z-index: 100;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.1s ease;
+
+  &:hover {
+    border-color: var(--magnetic-color-blue-55);
+    background: var(--magnetic-color-blue-95);
+    transform: scale(1.3);
+  }
+
+  &__label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 700;
+    color: var(--base-text-weak-default);
+    pointer-events: none;
+  }
+
+  // FORK / JOIN topology labels — appear outside the port dot
+  &__topo-label {
+    position: absolute;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--base-text-weak-default);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0.7;
+    top: 50%;
+    transform: translateY(-50%);
+
+    // FORK sits to the right of the output port dot
+    &--fork {
+      left: calc(100% + 4px);
+    }
+
+    // JOIN sits to the left of the input port dot
+    &--join {
+      right: calc(100% + 4px);
+    }
+  }
+
+  // Port Y positions are hard-coded in px to exactly match edge-geometry.ts constants.
+  // NODE_H = 93px → mid = 46.5px → port top = 46.5 - 7 (half of 14px dot) = 39.5px
+  // NODE_H * 0.33 = 30.7px → top = 30.7 - 7 = 23.7px ≈ 24px
+  // NODE_H * 0.67 = 62.3px → top = 62.3 - 7 = 55.3px ≈ 55px
+  // Never use top: 50% — that depends on actual card height matching NODE_H exactly.
+
+  &--input {
+    left: -8px;
+    top: 39px;
+
+    &:hover {
+      transform: scale(1.3);
+    }
+  }
+
+  &--output:not(&--true):not(&--false) {
+    right: -8px;
+    top: 39px;
+
+    &:hover {
+      transform: scale(1.3);
+    }
+  }
+
+  &--true {
+    right: -8px;
+    top: 24px;
+    border-color: var(--magnetic-color-green-60);
+
+    &:hover {
+      border-color: var(--magnetic-color-green-45);
+      background: var(--magnetic-color-green-95, #e8f5e2);
+      transform: scale(1.3);
+    }
+  }
+
+  &--false {
+    right: -8px;
+    top: 55px;
+    border-color: var(--magnetic-color-red-60);
+
+    &:hover {
+      border-color: var(--magnetic-color-red-45);
+      background: var(--magnetic-color-red-95);
+      transform: scale(1.3);
+    }
+  }
+}
+
+// ── Dark theme overrides ──────────────────────────────────────────────────
+
+:host-context(.magnetic-dark) {
+  .node-port {
+    background: var(--base-bg-default);
+    border-color: var(--base-border-default);
+
+    &:hover {
+      border-color: var(--magnetic-color-blue-55);
+      background: var(--magnetic-color-blue-35);
+    }
+
+    &--true {
+      border-color: var(--magnetic-color-green-60);
+    }
+
+    &--false {
+      border-color: var(--magnetic-color-red-60);
+    }
+  }
+}

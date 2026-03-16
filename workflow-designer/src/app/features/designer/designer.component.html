@@ -1,0 +1,160 @@
+<div class="designer-body"
+  [class.designer-body--execution]="store.rightPanelMode() === 'execution'"
+  [class.designer-body--panel-closed]="store.rightPanelMode() === 'properties' && !store.rightPanelOpen()"
+  [class.designer-body--expanded-docked]="store.rightPanelExpanded() === 'docked'"
+  [class.designer-body--expanded-fullscreen]="store.rightPanelExpanded() === 'fullscreen'"
+>
+
+  <!-- ── Fullscreen backdrop scrim ── -->
+  @if (store.rightPanelExpanded() === 'fullscreen') {
+    <div
+      class="designer-fullscreen-backdrop"
+      (click)="store.setRightPanelExpanded(false)"
+    ></div>
+  }
+
+  <!-- ── Center: Canvas ── -->
+  <main class="designer-canvas" [attr.inert]="store.rightPanelExpanded() === 'fullscreen' ? '' : null">
+    <app-canvas />
+
+    <!-- ── Floating canvas toolbar ── -->
+    <div class="canvas-zoom-overlay">
+
+      <!-- Hidden file input for Upload -->
+      <input
+        #fileInput
+        type="file"
+        accept=".json,application/json"
+        class="canvas-zoom-overlay__file-input"
+        (change)="onFileInputChange($event)"
+      />
+
+      <!-- Validate / Run -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        [disabled]="!canRun() || isRunning()"
+        (click)="onRun()"
+      >
+        @if (isRunning()) {
+          <pol-spinner [size]="'small'" [ariaLabel]="'Running'" />
+        } @else {
+          <pol-icon [iconName]="'play'" [size]="'small'" [decorative]="true" />
+        }
+        <span class="visually-hidden">Validate</span>
+      </button>
+
+      <!-- Save -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        (click)="onSave()"
+      >
+        <pol-icon [iconName]="'download-simple'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Save</span>
+      </button>
+
+      <!-- Upload -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        (click)="fileInput.click()"
+      >
+        <pol-icon [iconName]="'upload-simple'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Upload</span>
+      </button>
+
+      <span class="canvas-zoom-overlay__sep"></span>
+
+      <!-- Zoom out -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        (click)="onZoomOut()"
+      >
+        <pol-icon [iconName]="'minus'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Zoom out</span>
+      </button>
+
+      <pol-tag [size]="'small'" [ariaLabel]="'Zoom level'">{{ zoomLabel() }}</pol-tag>
+
+      <!-- Zoom in -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        (click)="onZoomIn()"
+      >
+        <pol-icon [iconName]="'plus'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Zoom in</span>
+      </button>
+
+      <span class="canvas-zoom-overlay__sep"></span>
+
+      <!-- Fit screen -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        (click)="onFitScreen()"
+      >
+        <pol-icon [iconName]="'arrows-out'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Fit screen</span>
+      </button>
+
+      <span class="canvas-zoom-overlay__sep"></span>
+
+      <!-- Clear canvas -->
+      <button
+        pol-button
+        [variant]="'tertiary'"
+        [size]="'small'"
+        [iconOnly]="true"
+        [destructive]="true"
+        (click)="onClear()"
+      >
+        <pol-icon [iconName]="'trash'" [size]="'small'" [decorative]="true" />
+        <span class="visually-hidden">Clear canvas</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- ── Grid spacer — reserves right column space so canvas shrinks ── -->
+  @if (isPanelOpen()) {
+    <div class="designer-panel-spacer"></div>
+  }
+
+</div>
+
+<!-- ── Right: Properties / Execution Panel (positioned on :host, spans full height) ── -->
+@if (isPanelOpen()) {
+  <aside class="designer-right-panel"
+    [class.designer-right-panel--execution]="store.rightPanelMode() === 'execution'"
+    [class.designer-right-panel--expanded-docked]="store.rightPanelExpanded() === 'docked'"
+    [class.designer-right-panel--expanded-fullscreen]="store.rightPanelExpanded() === 'fullscreen'"
+    [attr.role]="store.rightPanelExpanded() === 'fullscreen' ? 'dialog' : null"
+    [attr.aria-modal]="store.rightPanelExpanded() === 'fullscreen' ? 'true' : null"
+    [attr.aria-label]="store.rightPanelExpanded() === 'fullscreen' ? 'Input Fields Editor' : null"
+  >
+    @if (store.rightPanelMode() === 'properties') {
+      <app-properties-host />
+    } @else {
+      <app-execution-panel
+        (approve)="onApprove($event)"
+        (submitInputs)="onSubmitRunInputs($event)"
+        (reset)="onResetExecution()"
+        (close)="onCloseExecution()"
+      />
+    }
+  </aside>
+}

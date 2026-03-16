@@ -1,0 +1,41 @@
+<pol-modal [title]="'Keyboard Shortcuts'">
+
+  <!-- ── Title row with icon ── -->
+  <ng-container polModalTitle>
+    <pol-icon [iconName]="'keyboard'" [size]="'small'" [decorative]="true" />
+    Keyboard Shortcuts
+  </ng-container>
+
+  <!-- ── Body: shortcut groups ── -->
+  <div polModalBody class="shortcuts-body">
+    @for (group of groups; track group.title) {
+      <div class="shortcuts-group">
+        <div class="shortcuts-group__title">{{ group.title }}</div>
+        @for (s of group.shortcuts; track s.label) {
+          <div class="shortcuts-row">
+            <span class="shortcuts-row__label">{{ s.label }}</span>
+            <div class="shortcuts-row__keys">
+              @for (key of s.keys; track $index) {
+                <pol-tag [size]="'small'">{{ key }}</pol-tag>
+                @if (!$last) {
+                  <span class="shortcuts-sep">+</span>
+                }
+              }
+            </div>
+          </div>
+        }
+      </div>
+      @if (!$last) {
+        <pol-divider />
+      }
+    }
+  </div>
+
+  <!-- ── Footer ── -->
+  <div polModalFooter class="shortcuts-footer">
+    <button pol-button [variant]="'tertiary'" [size]="'small'" polModalClose (click)="close()">
+      Close
+    </button>
+  </div>
+
+</pol-modal>

@@ -1,0 +1,158 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative; // positioning context for the right panel overlay
+}
+
+// ── Body — 2-column grid ──────────────────────────────────────────────────
+
+.designer-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  flex: 1;
+  min-height: 0; // allow grid children to scroll independently
+  overflow: hidden;
+  transition: grid-template-columns var(--wd-transition-speed) ease;
+}
+
+// ── When panel is open, add a spacer column to shrink the canvas ─────────
+
+.designer-body--execution {
+  grid-template-columns:
+    1fr
+    var(--wd-right-panel-execution-width);
+}
+
+// Properties panel open (non-execution)
+.designer-body:not(.designer-body--execution):not(.designer-body--panel-closed) {
+  grid-template-columns:
+    1fr
+    var(--wd-right-panel-width);
+}
+
+// ── Right panel closed state ──────────────────────────────────────────────
+
+.designer-body--panel-closed {
+  grid-template-columns: 1fr;
+}
+
+// ── Expanded: docked — wider right panel, canvas shrinks ─────────────────
+
+.designer-body--expanded-docked {
+  grid-template-columns:
+    1fr
+    var(--wd-right-panel-expanded-width);
+}
+
+// ── Expanded: fullscreen — panel overlays canvas ─────────────────────────
+
+.designer-body--expanded-fullscreen {
+  // Grid stays normal; the panel itself becomes a fixed overlay
+  position: relative;
+
+  // Fullscreen panel handled on .designer-right-panel--expanded-fullscreen below
+}
+
+// ── Fullscreen backdrop scrim ────────────────────────────────────────────
+
+.designer-fullscreen-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+// ── Grid spacer — invisible div that reserves the right column ──────────
+
+.designer-panel-spacer {
+  min-width: 0;
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────
+
+.designer-canvas {
+  position: relative;
+  overflow: hidden;
+  // app-canvas fills this cell fully
+  app-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// ── Floating zoom overlay (shown when a panel is open) ───────────────────
+
+.canvas-zoom-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--base-border-default);
+  background: var(--base-bg-default);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+
+  &__sep {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--base-border-default);
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+
+  &__file-input {
+    display: none;
+  }
+}
+
+// ── Right panel — positioned absolutely on :host, spans full height ──────
+
+.designer-right-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--wd-right-panel-width);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--pol-color-neutral-200, #e5e7eb);
+  background: var(--pol-color-neutral-0, #ffffff);
+  padding-right: 8px;
+  transition:
+    width var(--wd-transition-speed) ease,
+    background var(--wd-transition-speed) ease,
+    border-color var(--wd-transition-speed) ease;
+
+  &--execution {
+    width: var(--wd-right-panel-execution-width);
+  }
+
+  &--expanded-docked {
+    width: var(--wd-right-panel-expanded-width);
+  }
+
+  &--expanded-fullscreen {
+    width: 100%;
+    border-left: none;
+    z-index: 200;
+  }
+}
+
+// ── Dark theme overrides ──────────────────────────────────────────────────
+
+:host-context(.magnetic-dark) {
+  .designer-right-panel {
+    border-color: var(--pol-color-neutral-800, #1f2937);
+    background: var(--pol-color-neutral-950, #0a0c10);
+  }
+}

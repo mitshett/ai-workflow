@@ -1,0 +1,135 @@
+<!--
+  Structure:
+    host  ← clipping viewport, dot-grid bg
+      .canvas-world  ← GPU transform: translate(x,y) scale(z)
+        .canvas-nodes     ← positioned node components
+        svg.canvas-edges  ← inline SVG edges (rendered after nodes = on top)
+-->
+
+<div
+  #world
+  class="canvas-world"
+  [style.transform]="worldTransform()"
+>
+
+  <!-- ── Node layer ── -->
+  <div class="canvas-nodes">
+    @for (node of store.nodes(); track node.id) {
+      <app-node
+        [node]="node"
+        [isSelected]="store.selectedNodeId() === node.id"
+        [executionResult]="store.nodeResultMap().get(node.id) ?? null"
+        [isReadOnly]="isReadOnly()"
+        (selectNode)="onSelectNode($event)"
+        (moveNode)="onMoveNode($event)"
+      />
+    }
+  </div>
+
+  <!-- ── SVG edge layer (inline — no child components, correct SVG namespace) ── -->
+  <svg
+    class="canvas-edges"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <!-- Default (unselected) arrow — muted gray -->
+      <marker id="wd-arrow" markerWidth="8" markerHeight="8"
+              refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
+      </marker>
+      <!-- Selected arrow — indigo to match selected stroke -->
+      <marker id="wd-arrow-selected" markerWidth="8" markerHeight="8"
+              refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6366f1" />
+      </marker>
+    </defs>
+
+    <!-- Committed edges -->
+    @for (ep of edgePaths(); track ep.edge.id) {
+      <!-- Hit area -->
+      <path
+        [attr.d]="ep.d"
+        fill="none"
+        stroke="transparent"
+        stroke-width="16"
+        style="cursor:pointer"
+        (click)="onSelectEdge(ep.edge.id); $event.stopPropagation()"
+      />
+      <!-- Visible stroke -->
+      <path
+        [attr.d]="ep.d"
+        fill="none"
+        [attr.stroke]="store.selectedEdgeId() === ep.edge.id ? '#6366f1' : '#94a3b8'"
+        [attr.stroke-width]="store.selectedEdgeId() === ep.edge.id ? '2.5' : '2'"
+        stroke-linecap="round"
+        [attr.marker-end]="store.selectedEdgeId() === ep.edge.id ? 'url(#wd-arrow-selected)' : 'url(#wd-arrow)'"
+      />
+      <!-- Port label for gateway true/false edges -->
+      @if (ep.edge.sourcePort !== 'output') {
+        <text
+          [attr.x]="ep.labelX"
+          [attr.y]="ep.labelY"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          font-size="10"
+          font-weight="600"
+          [attr.fill]="ep.portColor"
+          style="pointer-events:none; text-transform:uppercase"
+        >{{ ep.edge.sourcePort }}</text>
+      }
+      <!-- Animated flow dot when selected -->
+      @if (store.selectedEdgeId() === ep.edge.id) {
+        <circle r="4" [attr.fill]="ep.portColor">
+          <animateMotion dur="1.2s" repeatCount="indefinite">
+            <mpath [attr.href]="'#ep-' + ep.edge.id" />
+          </animateMotion>
+        </circle>
+        <path [attr.id]="'ep-' + ep.edge.id" [attr.d]="ep.d" fill="none" stroke="none" />
+      }
+    }
+
+    <!-- Live edge draft -->
+    @let draft = connectDraft();
+    @if (draft) {
+      <path
+        [attr.d]="draftPath()"
+        fill="none"
+        stroke="#6366f1"
+        stroke-width="2"
+        stroke-dasharray="6 4"
+        stroke-linecap="round"
+        opacity="0.85"
+        style="pointer-events:none"
+      />
+      <circle
+        [attr.cx]="draft.cursorX"
+        [attr.cy]="draft.cursorY"
+        r="5"
+        fill="#6366f1"
+        stroke="white"
+        stroke-width="2"
+        style="pointer-events:none"
+      />
+    }
+
+  </svg>
+
+</div>
+
+<!-- ── Empty canvas hint ── -->
+@if (store.nodeCount() === 0) {
+  <div class="canvas-empty-hint" aria-hidden="true">
+    <pol-empty-state
+      [illustration]="'info'"
+      [header]="'Canvas is empty'"
+      [message]="'Drag nodes from the palette to get started'"
+    />
+  </div>
+}
+
+<!-- ── Minimap ── -->
+<app-minimap
+  [canvasWidth]="canvasWidth()"
+  [canvasHeight]="canvasHeight()"
+  (panTo)="onMinimapPan($event)"
+/>

@@ -1,0 +1,116 @@
+<!-- ── Header: collapse toggle + title ── -->
+<div class="palette-header">
+  <button
+    pol-button
+    [variant]="'tertiary'"
+    [size]="'small'"
+    [iconOnly]="true"
+    (click)="onToggleCollapse()"
+    class="palette-header__collapse-btn"
+  >
+    <pol-icon
+      [iconName]="'sidebar-simple'"
+      [size]="'small'"
+      [decorative]="true"
+    />
+    <span class="visually-hidden">
+      {{ isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar' }}
+    </span>
+  </button>
+
+  @if (!isCollapsed()) {
+    <span class="palette-header__title">Nodes</span>
+  }
+</div>
+
+<!-- ── Expanded state ── -->
+@if (!isCollapsed()) {
+
+  <!-- Search -->
+  <div class="palette-search">
+    <pol-search
+      [label]="'Search nodes'"
+      [placeholder]="'Search nodes…'"
+      [size]="'small'"
+      [value]="searchQuery()"
+      (valueChange)="onSearchChange($event)"
+    />
+  </div>
+
+  <!-- Node list -->
+  <div class="palette-list">
+
+    @if (hasResults()) {
+      @for (category of categories; track category) {
+        @if (categoryVisible(category)) {
+
+          <!-- Category label -->
+          <div class="palette-category-label">{{ category }}</div>
+
+          <!-- Node rows -->
+          @for (template of templatesForCategory(category); track template.type) {
+            <button
+              class="palette-row"
+              type="button"
+              [attr.aria-label]="'Add ' + template.label + ' node'"
+              (click)="onAddNode(template)"
+            >
+              <span
+                class="palette-row__icon"
+                [style.color]="template.color"
+              >
+                <pol-icon
+                  [iconName]="$any(template.icon)"
+                  [size]="'medium'"
+                  [decorative]="true"
+                />
+              </span>
+              <span class="palette-row__text">
+                <span class="palette-row__label">{{ template.label }}</span>
+                <span class="palette-row__desc">{{ template.description }}</span>
+              </span>
+              <pol-icon
+                [iconName]="'plus'"
+                [size]="'xsmall'"
+                [decorative]="true"
+                class="palette-row__add"
+              />
+            </button>
+          }
+
+        }
+      }
+    } @else {
+      <!-- No results -->
+      <div class="palette-empty">
+        <pol-empty-state
+          [message]="'No nodes match \'' + searchQuery() + '\''"
+          [size]="'small'"
+          [inline]="true"
+        />
+      </div>
+    }
+
+  </div>
+
+} @else {
+  <!-- ── Collapsed state: colored bubble buttons ── -->
+  <div class="palette-collapsed-list">
+    @for (template of filteredTemplates(); track template.type) {
+      <button
+        class="palette-collapsed-chip"
+        type="button"
+        [style.color]="template.color"
+        [title]="template.label"
+        (click)="onAddNode(template)"
+      >
+        <pol-icon
+          [iconName]="$any(template.icon)"
+          [size]="'small'"
+          [decorative]="true"
+        />
+        <span class="visually-hidden">Add {{ template.label }}</span>
+      </button>
+    }
+  </div>
+}

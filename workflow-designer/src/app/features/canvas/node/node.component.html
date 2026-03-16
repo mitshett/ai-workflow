@@ -1,0 +1,107 @@
+<!--
+  Node card layout:
+  ┌────────────────────────────────────────┐
+  │ [mcp tool / start / agent tag]         │  ← type topbar (between card border and header)
+  ├────────────────────────────────────────┤
+  │ [icon]  Label (full width)             │  ← drag handle header
+  │ alias / description                    │  ← body (compact)
+  │                                        │
+  │ ○  (input port, left-center)           │
+  │  (output / true / false ports, right) ○│
+  └────────────────────────────────────────┘
+
+  Port elements carry data-node-id and data-port attributes so the
+  canvas connect-drag state machine can identify drop targets on mouseup.
+-->
+
+<pol-card
+  [interactive]="true"
+  [selected]="isSelected()"
+  (cardSelect)="onCardSelect()"
+>
+  <!-- ── Type topbar — sits between card top border and header ── -->
+  <div
+    class="node-topbar"
+    (mousedown)="onDragHandleMouseDown($event)"
+  >
+    @if (isRunning()) {
+      <pol-spinner [size]="'small'" [ariaLabel]="'Running'" />
+    } @else if (showExecutionBadge()) {
+      <pol-badge
+        [variant]="'status'"
+        [status]="execBadgeStatus()"
+        [label]="execBadgeLabel()"
+      />
+    } @else {
+      <pol-tag [size]="'small'">{{ typeLabel() }}</pol-tag>
+    }
+  </div>
+
+  <!-- ── Drag handle / header ── -->
+  <div
+    class="node-header"
+    (mousedown)="onDragHandleMouseDown($event)"
+  >
+    <span class="node-header__icon">
+      <pol-icon
+        [iconName]="$any(nodeIcon())"
+        [size]="'medium'"
+        [decorative]="true"
+        [style.--interact-icon-weak-default]="nodeColor()"
+      />
+    </span>
+    <span class="node-header__label" [title]="node().label">{{ node().label }}</span>
+  </div>
+
+  <!-- ── Body: alias ── -->
+  <div class="node-body">
+    <span class="node-body__alias">{{ node().alias }}</span>
+    @if (node().description) {
+      <span class="node-body__description">{{ node().description }}</span>
+    }
+  </div>
+
+</pol-card>
+
+<!-- ── Input port (left-center) — hidden on start nodes ── -->
+@if (node().type !== 'start') {
+  <div
+    class="node-port node-port--input"
+    [attr.data-node-id]="node().id"
+    data-port="input"
+  >
+    @if (isJoin()) {
+      <span class="node-port__topo-label node-port__topo-label--join">JOIN</span>
+    }
+  </div>
+}
+
+<!-- ── Output ports (right side) ── -->
+@if (isGateway()) {
+  <!-- Gateway: true (top-right) + false (bottom-right) -->
+  <div
+    class="node-port node-port--output node-port--true"
+    [attr.data-node-id]="node().id"
+    data-port="true"
+  >
+    <span class="node-port__label">T</span>
+  </div>
+  <div
+    class="node-port node-port--output node-port--false"
+    [attr.data-node-id]="node().id"
+    data-port="false"
+  >
+    <span class="node-port__label">F</span>
+  </div>
+} @else if (node().type !== 'end') {
+  <!-- All non-end, non-gateway nodes: single output port -->
+  <div
+    class="node-port node-port--output"
+    [attr.data-node-id]="node().id"
+    data-port="output"
+  >
+    @if (isFork()) {
+      <span class="node-port__topo-label node-port__topo-label--fork">FORK</span>
+    }
+  </div>
+}

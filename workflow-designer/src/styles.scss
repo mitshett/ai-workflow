@@ -1,0 +1,153 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Global layout variables
+// ─────────────────────────────────────────────────────────────────────────────
+
+:root {
+  --wd-header-height: 56px;
+  --wd-toolbar-height: 52px;
+  --wd-sidebar-width: 260px;
+  --wd-sidebar-collapsed-width: 48px;
+  --wd-right-panel-width: 500px;
+  --wd-right-panel-execution-width: 500px;
+  --wd-right-panel-expanded-width: 500px;
+  --wd-transition-speed: 200ms;
+  --wd-canvas-grid-color-light: rgba(0, 0, 0, 0.08);
+  --wd-canvas-grid-color-dark: rgba(255, 255, 255, 0.06);
+  --wd-canvas-bg-light: #eeeef4;
+  --wd-canvas-bg-dark: #1a1d23;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reset & base
+// ─────────────────────────────────────────────────────────────────────────────
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme transition — smooth switch between light and dark
+// ─────────────────────────────────────────────────────────────────────────────
+
+body {
+  transition:
+    background-color var(--wd-transition-speed) ease,
+    color var(--wd-transition-speed) ease;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas dot-grid background
+// ─────────────────────────────────────────────────────────────────────────────
+
+.wd-canvas-grid {
+  background-color: var(--wd-canvas-bg-light);
+  background-image: radial-gradient(
+    circle,
+    var(--wd-canvas-grid-color-light) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+.magnetic-dark .wd-canvas-grid {
+  background-color: var(--wd-canvas-bg-dark);
+  background-image: radial-gradient(
+    circle,
+    var(--wd-canvas-grid-color-dark) 1px,
+    transparent 1px
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas node drag cursor overrides
+// ─────────────────────────────────────────────────────────────────────────────
+
+.wd-dragging {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+.wd-node-drag-handle {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas connecting cursor
+// ─────────────────────────────────────────────────────────────────────────────
+
+.wd-connecting {
+  cursor: crosshair !important;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Smooth scrollbar styling
+// ─────────────────────────────────────────────────────────────────────────────
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.35);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(128, 128, 128, 0.55);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header — enforce Cisco Polarity brand blue gradient
+// ─────────────────────────────────────────────────────────────────────────────
+
+.pol-header {
+  --pol-header--gradient: linear-gradient(90deg, #3730d4 0%, #3b35d8 100%) !important;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility
+// ─────────────────────────────────────────────────────────────────────────────
+
+.wd-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canvas node running pulse animation
+// ─────────────────────────────────────────────────────────────────────────────
+
+@keyframes wd-pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0;   }
+}
+
+.wd-node-running::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--pol-color-blue-400, #60a5fa);
+  animation: wd-pulse-ring 1.2s ease-out infinite;
+  pointer-events: none;
+}
